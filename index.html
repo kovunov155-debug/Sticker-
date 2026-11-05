@@ -2,29 +2,466 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Test</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Stick Chop — Магазин + Игра</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body { margin:0; background:#020617; color:#fff; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.tab-active { background: linear-gradient(135deg, #9333ea, #db2777); color: #fff; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; padding:12px; z-index:50; }
+.modal-box { width:100%; max-width:440px; max-height:85vh; overflow-y:auto; background:#0f172a; border:1px solid #334155; border-radius:24px; padding:18px; }
+.hidden { display:none!important; }
+</style>
 </head>
-<body class="bg-slate-950 text-white p-4">
-  <h1 class="text-2xl font-bold mb-4">Тест стикеров</h1>
-  <div id="box" class="grid grid-cols-2 gap-3"></div>
-  <script>
-    const BASE = "https://kovunov155-debug.github.io/Stickerchop./";
-    const files = [
-      "grok_1793863248535.jpg",
-      "grok_1793863263231.jpg",
-      "grok_1793863828992.png",
-      "grok_1793863836019.png"
-    ];
-    const box = document.getElementById("box");
-    files.forEach(f => {
-      const img = document.createElement("img");
-      img.src = BASE + f;
-      img.className = "w-full rounded-xl border border-slate-700";
-      img.onerror = () => img.style.border = "2px solid red";
-      box.appendChild(img);
-    });
-  </script>
+<body class="selection:bg-purple-500 selection:text-white">
+
+<!-- Шапка -->
+<header class="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center shadow-md">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xl shadow">🪓</div>
+    <div>
+      <h1 class="font-black text-lg bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent leading-none">STICK CHOP</h1>
+      <p class="text-xs text-slate-400 mt-0.5">Магазин стикеров + Игра</p>
+    </div>
+  </div>
+  <button onclick="openCart()" class="relative bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl px-3.5 py-2 text-sm font-semibold transition flex items-center gap-2 shadow active:scale-95">
+    <span>🛒</span>
+    <span id="cart-count" class="bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow">0</span>
+  </button>
+</header>
+
+<!-- Вкладки: Магазин / Игра -->
+<div class="flex border-b border-slate-800 bg-slate-900/60 sticky top-[73px] z-30 backdrop-blur-md">
+  <button id="tab-shop" class="flex-1 py-3 text-sm font-bold tab-active transition flex items-center justify-center gap-1.5" onclick="showShop()">
+    <span>🛍️ Магазин</span>
+  </button>
+  <button id="tab-game" class="flex-1 py-3 text-sm font-bold text-slate-400 transition flex items-center justify-center gap-1.5" onclick="showGame()">
+    <span>🪓 Игра Stick Chop</span>
+  </button>
+</div>
+
+<!-- Вкладка 1: Магазин -->
+<main id="shop-section" class="max-w-md mx-auto p-4 pb-28">
+  <input id="search" type="search" placeholder="Поиск стикеров..." oninput="filterProducts()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 mb-4 outline-none focus:border-purple-500 transition">
+  
+  <div class="flex justify-between items-center text-xs mb-3">
+    <span class="text-slate-300 font-semibold">Каталог стикеров (20)</span>
+    <span class="text-amber-400 font-semibold bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">12–15 ⭐</span>
+  </div>
+
+  <div id="products" class="grid grid-cols-2 gap-3"></div>
+</main>
+
+<!-- Вкладка 2: Игра -->
+<main id="game-section" class="max-w-md mx-auto p-4 pb-28 hidden space-y-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center shadow-lg">
+    <div id="axe-icon" onclick="chopWood()" class="text-6xl mb-2 transition-transform cursor-pointer select-none active:scale-125 active:rotate-12">🪓</div>
+    <h2 class="text-lg font-bold text-white">Stick Chop Simulator</h2>
+    <p class="text-xs text-slate-400">Нажимайте кнопку или топор, чтобы рубить дерево!</p>
+
+    <button onclick="chopWood()" class="mt-3 w-full py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:opacity-95 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-600/25 active:scale-95 transition">
+      🪓 Рубить дерево (+<span id="chop-power-label">1</span> 🪵)
+    </button>
+  </div>
+
+  <div class="grid grid-cols-2 gap-3 text-center">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+      <div class="text-2xl mb-1">🪵</div>
+      <div id="wood" class="text-xl font-bold text-amber-300 font-mono">0</div>
+      <div class="text-xs text-slate-400">Дерево</div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+      <div class="text-2xl mb-1">💰</div>
+      <div id="money" class="text-xl font-bold text-emerald-400 font-mono">0</div>
+      <div class="text-xs text-slate-400">Деньги</div>
+    </div>
+  </div>
+
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs flex justify-around">
+    <div>👷 Рабочих: <b id="workers" class="text-purple-400 font-mono text-sm">1</b></div>
+    <div class="h-4 w-px bg-slate-800"></div>
+    <div>⚡ Сила топора: <b id="power" class="text-pink-400 font-mono text-sm">1</b></div>
+  </div>
+
+  <div class="space-y-2">
+    <button id="btn-hire" onclick="hireWorker()" class="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 py-3 rounded-xl font-bold text-xs transition shadow active:scale-95">
+      👷 Нанять рабочего (<span id="worker-cost">50</span> 💰)
+    </button>
+
+    <button id="btn-upgrade" onclick="upgradePower()" class="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-40 py-3 rounded-xl font-bold text-xs transition shadow active:scale-95">
+      ⚡ Улучшить силу топора (<span id="power-cost">100</span> 💰)
+    </button>
+
+    <button id="btn-sell" onclick="sellWood()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-xs transition shadow active:scale-95">
+      📦 Продать всё дерево за деньги
+    </button>
+  </div>
+</main>
+
+<!-- Нижняя плавающая панель корзины -->
+<div class="fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-30 max-w-md mx-auto">
+  <button onclick="openCart()" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-95 text-white font-bold py-3 px-4 rounded-2xl shadow-xl shadow-pink-600/30 flex items-center justify-between transition active:scale-[0.99]">
+    <div class="flex items-center gap-2">
+      <span>🛒</span>
+      <span class="text-xs font-bold uppercase tracking-wider">Корзина</span>
+      <span id="bottom-cart-count" class="bg-white/20 px-2 py-0.5 rounded-lg text-xs font-mono font-bold">0</span>
+    </div>
+    <div class="font-mono text-amber-300 font-bold text-sm">
+      <span id="bottom-cart-total">0</span> ⭐
+    </div>
+  </button>
+</div>
+
+<!-- Модальное окно корзины -->
+<div id="cart-modal" class="modal hidden" onclick="closeCart()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
+      <h3 class="font-bold text-base text-white flex items-center gap-2">
+        <span>🛍️</span> Корзина (<span id="cart-modal-count">0</span>)
+      </h3>
+      <div class="flex items-center gap-2">
+        <button onclick="clearCart()" class="text-xs text-slate-400 hover:text-rose-400 px-2 py-1">Очистить</button>
+        <button onclick="closeCart()" class="text-slate-400 hover:text-white text-2xl w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center leading-none">&times;</button>
+      </div>
+    </div>
+
+    <div id="cart-items" class="space-y-2 mb-4 max-h-60 overflow-y-auto pr-1"></div>
+
+    <div class="border-t border-slate-800 pt-3 space-y-2.5">
+      <div class="flex justify-between items-center text-sm font-semibold">
+        <span class="text-slate-300">Итого:</span>
+        <span class="text-amber-300 font-bold text-base font-mono"><span id="total-price">0</span> ⭐</span>
+      </div>
+      <button id="checkout-btn" onclick="openPaymentModal()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 disabled:opacity-40 py-3.5 rounded-xl font-bold text-white transition shadow-lg shadow-pink-600/20 active:scale-[0.98]">
+        Оплатить заказ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно оплаты USDT -->
+<div id="pay-modal" class="modal hidden" onclick="closePaymentModal()">
+  <div class="modal-box text-center space-y-3.5" onclick="event.stopPropagation()">
+    <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center text-2xl mx-auto shadow">💎</div>
+    <div>
+      <h3 class="text-base font-bold text-white">Инструкция по оплате USDT</h3>
+      <p class="text-xs text-slate-300 mt-1">
+        Сумма к оплате: <strong class="text-amber-400 font-mono"><span id="pay-total-sum">0</span> ⭐</strong><br>
+        Переведите сумму на кошелек в сети TON:
+      </p>
+    </div>
+
+    <!-- Адрес кошелька -->
+    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-left">
+      <span class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Кошелек (USDT TON):</span>
+      <span id="wallet-text" class="font-mono text-[11px] text-purple-200 break-all select-all block leading-tight">UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd</span>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="space-y-2 pt-1">
+      <button onclick="goToPaymentLink()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-600/25 active:scale-95 flex items-center justify-center gap-1.5">
+        <span>🚀 Перейти к оплате в кошельке</span> ↗
+      </button>
+
+      <button id="copy-link-btn" onclick="copyPaymentLink()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition active:scale-95 shadow">
+        📋 Скопировать ссылку на оплату
+      </button>
+
+      <button id="copy-wallet-btn" onclick="copyWalletAddress()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95">
+        📋 Скопировать только адрес
+      </button>
+    </div>
+
+    <button onclick="closePaymentModal()" class="w-full py-2 text-slate-400 hover:text-white text-xs transition">
+      Вернуться назад (корзина сохранена)
+    </button>
+  </div>
+</div>
+
+<script>
+// Безопасная инициализация Telegram SDK
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  try { tg.ready(); tg.expand(); } catch (e) {}
+}
+
+const BASE = 'https://kovunov155-debug.github.io/Stickerchop./';
+const USDT_WALLET = 'UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd';
+const PAYMENT_LINK = 'https://app.tonkeeper.com/transfer/' + USDT_WALLET;
+
+const products = [
+  { id:1, name:'Bitcoin', price:15, img: BASE + 'grok_1793863248535.jpg', emoji:'₿' },
+  { id:2, name:'Pepe', price:12, img: BASE + 'grok_1793863263231.jpg', emoji:'🐸' },
+  { id:3, name:'Solana', price:12, img: BASE + 'grok_1793863828992.png', emoji:'☀️' },
+  { id:4, name:'Pepe 2', price:12, img: BASE + 'grok_1793863836019.png', emoji:'🐸' },
+  { id:5, name:'Sticker 5', price:12, img: BASE + 'grok_1793863841233.png', emoji:'🦫' },
+  { id:6, name:'Sticker 6', price:12, img: BASE + 'grok_1793873660861.jpg', emoji:'🥷' },
+  { id:7, name:'Sticker 7', price:12, img: BASE + 'grok_1793873671190.jpg', emoji:'🐕' },
+  { id:8, name:'Sticker 8', price:12, img: BASE + 'grok_1793873671687.jpg', emoji:'👾' },
+  { id:9, name:'Sticker 9', price:12, img: BASE + 'grok_1793873675421.jpg', emoji:'🦆' },
+  { id:10, name:'Sticker 10', price:12, img: BASE + 'grok_1793873678612.jpg', emoji:'👸' },
+  { id:11, name:'Sticker 11', price:12, img: BASE + 'grok_1793873682610.jpg', emoji:'🐶' },
+  { id:12, name:'Sticker 12', price:12, img: BASE + 'grok_1793873686205.jpg', emoji:'🦊' },
+  { id:13, name:'Sticker 13', price:12, img: BASE + 'grok_1793873690727.jpg', emoji:'🐉' },
+  { id:14, name:'Sticker 14', price:12, img: BASE + 'grok_1793873695295.jpg', emoji:'💻' },
+  { id:15, name:'Sticker 15', price:12, img: BASE + 'grok_1793873698083.jpg', emoji:'🐼' },
+  { id:16, name:'Sticker 16', price:12, img: BASE + 'grok_1793873701177.jpg', emoji:'🔥' },
+  { id:17, name:'Sticker 17', price:12, img: BASE + 'grok_1793873703898.jpg', emoji:'😎' },
+  { id:18, name:'Sticker 18', price:12, img: BASE + 'grok_1793873708158.jpg', emoji:'🤖' },
+  { id:19, name:'Sticker 19', price:12, img: BASE + 'grok_1793873712441.jpg', emoji:'🧙' },
+  { id:20, name:'Sticker 20', price:12, img: BASE + 'grok_1793873715206.jpg', emoji:'✨' }
+];
+
+// Загрузка корзины из localStorage
+let cart = [];
+try {
+  const saved = localStorage.getItem('stick_chop_cart');
+  if (saved) cart = JSON.parse(saved);
+} catch (e) {}
+
+function saveCart() {
+  try { localStorage.setItem('stick_chop_cart', JSON.stringify(cart)); } catch (e) {}
+}
+
+// Загрузка игры из localStorage
+let game = { wood: 0, money: 0, workers: 1, power: 1, last: Date.now() };
+try {
+  const savedGame = localStorage.getItem('stick_chop_game');
+  if (savedGame) game = JSON.parse(savedGame);
+} catch (e) {}
+
+function saveGame() {
+  try { localStorage.setItem('stick_chop_game', JSON.stringify(game)); } catch (e) {}
+}
+
+// Рендер товаров
+function renderProducts(list) {
+  const c = document.getElementById('products');
+  c.innerHTML = '';
+  list.forEach(p => {
+    const inCart = cart.find(i => i.id === p.id);
+    const div = document.createElement('div');
+    div.className = 'bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between shadow';
+    div.innerHTML = `
+      <div class="relative w-full h-32 bg-slate-950 flex items-center justify-center overflow-hidden">
+        <img src="${p.img}" class="w-full h-full object-contain" alt="${p.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="hidden w-full h-full items-center justify-center text-4xl">${p.emoji}</div>
+      </div>
+      <div class="p-3">
+        <h4 class="font-bold text-xs truncate text-white">${p.name}</h4>
+        <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-800">
+          <span class="text-amber-400 font-bold text-xs font-mono">${p.price} ⭐</span>
+          <button onclick="addToCart(${p.id})" class="bg-purple-600 hover:bg-purple-500 text-white text-xs px-3 py-1 rounded-lg font-bold transition active:scale-95">
+            ${inCart ? '+' + inCart.qty : '+'}
+          </button>
+        </div>
+      </div>`;
+    c.appendChild(div);
+  });
+}
+
+function filterProducts() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  renderProducts(products.filter(p => p.name.toLowerCase().includes(q)));
+}
+
+// Корзина
+function addToCart(id) {
+  const p = products.find(x => x.id === id);
+  const it = cart.find(x => x.id === id);
+  if (it) it.qty++;
+  else cart.push({ ...p, qty: 1 });
+  saveCart();
+  updateCart();
+  filterProducts();
+}
+
+function changeQty(id, delta) {
+  const it = cart.find(x => x.id === id);
+  if (!it) return;
+  it.qty += delta;
+  if (it.qty <= 0) cart = cart.filter(x => x.id !== id);
+  saveCart();
+  updateCart();
+  filterProducts();
+}
+
+function clearCart() {
+  cart = [];
+  saveCart();
+  updateCart();
+  filterProducts();
+}
+
+function updateCart() {
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  document.getElementById('cart-count').innerText = count;
+  document.getElementById('bottom-cart-count').innerText = count;
+  document.getElementById('cart-modal-count').innerText = count;
+  document.getElementById('total-price').innerText = total;
+  document.getElementById('bottom-cart-total').innerText = total;
+
+  const btn = document.getElementById('checkout-btn');
+  if (btn) btn.disabled = cart.length === 0;
+
+  const c = document.getElementById('cart-items');
+  c.innerHTML = '';
+  if (cart.length === 0) {
+    c.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Корзина пуста</div>';
+    return;
+  }
+
+  cart.forEach(i => {
+    const d = document.createElement('div');
+    d.className = 'flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-800 text-xs';
+    d.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="text-lg">${i.emoji}</span>
+        <div>
+          <div class="font-bold text-white">${i.name}</div>
+          <div class="text-[10px] text-amber-400 font-mono">${i.price} ⭐ × ${i.qty} = ${i.price * i.qty} ⭐</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+        <button onclick="changeQty(${i.id}, -1)" class="w-6 h-6 text-slate-300 font-bold active:scale-95">−</button>
+        <span class="font-mono font-bold px-1 text-white">${i.qty}</span>
+        <button onclick="changeQty(${i.id}, 1)" class="w-6 h-6 text-slate-300 font-bold active:scale-95">+</button>
+      </div>`;
+    c.appendChild(d);
+  });
+}
+
+function openCart() {
+  updateCart();
+  document.getElementById('cart-modal').classList.remove('hidden');
+}
+
+function closeCart() {
+  document.getElementById('cart-modal').classList.add('hidden');
+}
+
+// Оплата USDT
+function openPaymentModal() {
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById('pay-total-sum').innerText = total;
+  closeCart();
+  document.getElementById('pay-modal').classList.remove('hidden');
+}
+
+function closePaymentModal() {
+  document.getElementById('pay-modal').classList.add('hidden');
+}
+
+function goToPaymentLink() {
+  if (tg && typeof tg.openLink === 'function') {
+    try { tg.openLink(PAYMENT_LINK); return; } catch(e) {}
+  }
+  window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
+}
+
+function copyPaymentLink() {
+  navigator.clipboard.writeText(PAYMENT_LINK);
+  const btn = document.getElementById('copy-link-btn');
+  btn.innerText = '✅ Ссылка скопирована!';
+  setTimeout(() => btn.innerText = '📋 Скопировать ссылку на оплату', 2500);
+}
+
+function copyWalletAddress() {
+  navigator.clipboard.writeText(USDT_WALLET);
+  const btn = document.getElementById('copy-wallet-btn');
+  btn.innerText = '✅ Адрес скопирован!';
+  setTimeout(() => btn.innerText = '📋 Скопировать только адрес', 2500);
+}
+
+// Переключение вкладок
+function showShop() {
+  document.getElementById('shop-section').classList.remove('hidden');
+  document.getElementById('game-section').classList.add('hidden');
+  document.getElementById('tab-shop').className = 'flex-1 py-3 text-sm font-bold tab-active transition flex items-center justify-center gap-1.5';
+  document.getElementById('tab-game').className = 'flex-1 py-3 text-sm font-bold text-slate-400 transition flex items-center justify-center gap-1.5';
+}
+
+function showGame() {
+  document.getElementById('shop-section').classList.add('hidden');
+  document.getElementById('game-section').classList.remove('hidden');
+  document.getElementById('tab-shop').className = 'flex-1 py-3 text-sm font-bold text-slate-400 transition flex items-center justify-center gap-1.5';
+  document.getElementById('tab-game').className = 'flex-1 py-3 text-sm font-bold tab-active transition flex items-center justify-center gap-1.5';
+}
+
+// Игра
+function chopWood() {
+  game.wood += Math.max(1, Math.round(game.power));
+  game.money += Math.max(0.5, game.power * 0.2);
+  game.last = Date.now();
+  saveGame();
+  updateGameUI();
+}
+
+function hireWorker() {
+  const cost = game.workers * 50;
+  if (game.money >= cost) {
+    game.money -= cost;
+    game.workers++;
+    game.last = Date.now();
+    saveGame();
+    updateGameUI();
+  }
+}
+
+function upgradePower() {
+  const cost = Math.floor(game.power * 100);
+  if (game.money >= cost) {
+    game.money -= cost;
+    game.power += 0.5;
+    game.last = Date.now();
+    saveGame();
+    updateGameUI();
+  }
+}
+
+function sellWood() {
+  if (game.wood >= 1) {
+    const earned = Math.floor(game.wood * 0.8);
+    game.wood = 0;
+    game.money += earned;
+    game.last = Date.now();
+    saveGame();
+    updateGameUI();
+  }
+}
+
+function updateGameUI() {
+  document.getElementById('wood').innerText = Math.floor(game.wood);
+  document.getElementById('money').innerText = Math.floor(game.money);
+  document.getElementById('workers').innerText = game.workers;
+  document.getElementById('power').innerText = game.power.toFixed(1);
+  document.getElementById('chop-power-label').innerText = Math.max(1, Math.round(game.power));
+  document.getElementById('worker-cost').innerText = game.workers * 50;
+  document.getElementById('power-cost').innerText = Math.floor(game.power * 100);
+
+  document.getElementById('btn-hire').disabled = game.money < (game.workers * 50);
+  document.getElementById('btn-upgrade').disabled = game.money < Math.floor(game.power * 100);
+}
+
+// Игровой цикл
+setInterval(() => {
+  const sec = Math.max(0, (Date.now() - game.last) / 1000);
+  if (sec > 0) {
+    game.wood += game.workers * game.power * sec * 0.5;
+    game.money += game.workers * game.power * sec * 0.15;
+    game.last = Date.now();
+    saveGame();
+    updateGameUI();
+  }
+}, 1000);
+
+// Инициализация при старте
+renderProducts(products);
+updateCart();
+updateGameUI();
+</script>
 </body>
 </html>
