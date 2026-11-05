@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Stick Chop — Магазин + Игра</title>
+<title>Stick Chop — Магазин + Игра + VIP</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
@@ -12,11 +12,28 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
 .modal { position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; padding:12px; z-index:50; }
 .modal-box { width:100%; max-width:440px; max-height:85vh; overflow-y:auto; background:#0f172a; border:1px solid #334155; border-radius:24px; padding:18px; }
 .hidden { display:none!important; }
+
+/* Анимация ударов лесорубов */
+@keyframes lumberjack-chop-left {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  30% { transform: rotate(-32deg) translateY(-5px); }
+  55% { transform: rotate(28deg) translateY(3px) scale(1.08); }
+  75% { transform: rotate(5deg) translateY(0); }
+}
+@keyframes lumberjack-chop-right {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  30% { transform: rotate(32deg) translateY(-5px); }
+  55% { transform: rotate(-28deg) translateY(3px) scale(1.08); }
+  75% { transform: rotate(-5deg) translateY(0); }
+}
+.anim-jack-left { animation: lumberjack-chop-left 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; transform-origin: bottom right; }
+.anim-jack-right { animation: lumberjack-chop-right 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; transform-origin: bottom left; }
+
 @keyframes floatUp {
   0% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-35px); }
 }
-.float-text { animation: floatUp 0.7s ease-out forwards; position: absolute; pointer-events: none; font-weight: 800; font-size: 14px; }
+.float-text { animation: floatUp 0.7s ease-out forwards; position: absolute; pointer-events: none; font-weight: 800; font-size: 13px; z-index: 40; }
 </style>
 </head>
 <body class="selection:bg-purple-500 selection:text-white">
@@ -36,7 +53,7 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
   </button>
 </header>
 
-<!-- Вкладки: Магазин / Игра -->
+<!-- Вкладки -->
 <div class="flex border-b border-slate-800 bg-slate-900/60 sticky top-[73px] z-30 backdrop-blur-md">
   <button id="tab-shop" class="flex-1 py-3 text-sm font-bold tab-active transition flex items-center justify-center gap-1.5" onclick="showShop()">
     <span>🛍️ Магазин</span>
@@ -52,7 +69,7 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
   
   <div class="flex justify-between items-center text-xs mb-3">
     <span class="text-slate-300 font-semibold">Каталог стикеров (20)</span>
-    <span class="text-amber-400 font-semibold bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">12–15 ⭐</span>
+    <span class="text-amber-400 font-semibold bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">55–120 ⭐</span>
   </div>
 
   <div id="products" class="grid grid-cols-2 gap-3"></div>
@@ -61,33 +78,53 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
 <!-- Вкладка 2: Игра Stick Chop -->
 <main id="game-section" class="max-w-md mx-auto p-4 pb-16 hidden space-y-3.5">
   <!-- Бонусное оповещение -->
-  <div id="bonus-banner" class="hidden bg-gradient-to-r from-amber-500/20 via-pink-500/20 to-purple-500/20 border border-amber-400/50 p-2.5 rounded-xl text-center text-xs font-bold text-amber-300 shadow"></div>
+  <div id="bonus-banner" class="hidden bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 border border-amber-400/60 p-2.5 rounded-2xl text-center text-xs font-bold text-amber-200 shadow-lg animate-bounce"></div>
 
-  <!-- Арена рубки дерева -->
-  <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center shadow-xl relative overflow-hidden">
-    <div id="particle-box" class="absolute inset-0 pointer-events-none flex items-center justify-center"></div>
+  <!-- Поляна с лесорубами -->
+  <div class="bg-gradient-to-b from-slate-900 via-emerald-950/40 to-slate-950 border border-emerald-900/40 rounded-3xl p-4 text-center shadow-2xl relative overflow-hidden">
+    <div id="particle-box" class="absolute inset-0 pointer-events-none flex items-center justify-center z-30"></div>
 
-    <div class="flex justify-between items-center text-xs text-slate-400 mb-2">
-      <span class="font-semibold text-purple-300">🌲 Дерево <span id="tree-level">#1</span></span>
-      <span class="text-emerald-400 font-mono font-bold">+<span id="idle-income">0.4</span> 🪵/сек</span>
+    <div class="flex justify-between items-center text-xs mb-2 relative z-10">
+      <div class="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur px-2.5 py-1 rounded-xl border border-slate-800">
+        <span id="tree-icon" class="text-base">🌲</span>
+        <span id="tree-name" class="font-bold text-white text-xs">Северная Ель</span>
+        <span id="tree-level-badge" class="text-[10px] text-purple-300 font-mono">#1</span>
+      </div>
+      <div class="flex items-center gap-1 bg-emerald-950/80 border border-emerald-700/50 px-2.5 py-1 rounded-xl text-emerald-300 font-mono text-xs font-bold shadow">
+        <span>🪵</span>
+        <span>+<span id="idle-income">0.4</span> / сек</span>
+      </div>
     </div>
 
     <!-- HP дерева -->
-    <div class="w-full bg-slate-950 rounded-full h-3.5 border border-slate-800 overflow-hidden mb-2 p-0.5">
+    <div class="w-full bg-slate-950 rounded-full h-3.5 border border-emerald-900/50 overflow-hidden mb-1 p-0.5">
       <div id="hp-bar" class="bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 h-full rounded-full transition-all duration-100" style="width: 100%;"></div>
     </div>
-    <div class="text-[11px] text-slate-400 font-mono mb-2">
-      Здоровье дерева: <strong id="hp-current" class="text-white">10</strong> / <span id="hp-max">10</span> HP
+    <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono mb-2 px-1">
+      <span>HP дерева: <b id="hp-current" class="text-emerald-300">10</b> / <span id="hp-max">10</span></span>
+      <span id="tree-multiplier" class="text-amber-400">Свежая хвоя (x1)</span>
     </div>
 
-    <!-- Анимация дерева и топора -->
-    <div id="tree-container" onclick="chopWood()" class="relative my-2 select-none cursor-pointer inline-block transition-transform active:scale-90">
-      <div id="tree-emoji" class="text-7xl">🌲</div>
-      <div id="axe-emoji" class="absolute -top-2 -right-4 text-4xl transition-transform">🪓</div>
+    <!-- Поляна: Левые + Дерево + Правые -->
+    <div class="relative py-2 flex items-center justify-between min-h-[175px] select-none px-1">
+      <div id="left-lumberjacks" class="flex flex-col gap-2 items-center z-10 w-24"></div>
+
+      <div id="tree-box" onclick="chopWood()" class="relative flex flex-col items-center justify-center cursor-pointer group active:scale-95 transition">
+        <div id="tree-emoji" class="text-7xl transition-transform duration-100 filter drop-shadow-[0_12px_14px_rgba(0,0,0,0.6)]">🌲</div>
+        <div id="axe-emoji" class="absolute -top-3 -right-3 text-4xl transition-transform duration-100 drop-shadow-md">🪓</div>
+        <span class="text-[10px] font-bold text-amber-300/90 mt-1 bg-black/60 px-2 py-0.5 rounded-full border border-amber-500/30">Тапни дерево!</span>
+      </div>
+
+      <div id="right-lumberjacks" class="flex flex-col gap-2 items-center z-10 w-24"></div>
     </div>
 
-    <button onclick="chopWood()" class="mt-2 w-full py-3.5 bg-gradient-to-r from-amber-600 via-orange-600 to-pink-600 hover:opacity-95 text-white font-black text-sm rounded-2xl shadow-xl shadow-orange-600/30 active:scale-95 transition">
-      🪓 УДАРИТЬ ТОПОРОМ (+<span id="chop-power-label">1</span> 🪵)
+    <div id="camp-counter" class="hidden text-center text-[10px] text-purple-300 bg-purple-950/40 border border-purple-800/40 rounded-xl py-1 mt-1 font-mono">
+      🏕️ В лагере трудятся ещё +<span id="camp-extra">0</span> лесорубов
+    </div>
+
+    <button onclick="chopWood()" class="mt-3 w-full py-3.5 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:opacity-95 text-white font-black text-sm rounded-2xl shadow-xl shadow-orange-600/30 active:scale-95 transition flex items-center justify-center gap-2">
+      <span id="btn-axe-icon">🪓</span>
+      <span>УДАРИТЬ ТОПОРОМ (+<span id="chop-power-label">1</span> 🪵)</span>
     </button>
   </div>
 
@@ -105,35 +142,70 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
     </div>
   </div>
 
-  <!-- Продажа дерева (Гарантированно 1 🪵 = 1 💰) -->
+  <!-- VIP-МАГАЗИН БУСТЕРОВ -->
+  <div class="bg-gradient-to-br from-amber-950/40 via-slate-900 to-purple-950/40 border border-amber-500/40 rounded-3xl p-4 space-y-3 shadow-xl">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">👑</span>
+        <div>
+          <h3 class="font-black text-sm text-amber-300">VIP-Магазин Бустеров</h3>
+          <p class="text-[10px] text-slate-400">Оплата в USDT / TON на ваш адрес</p>
+        </div>
+      </div>
+      <span id="vip-status-badge" class="hidden bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow">
+        VIP АКТИВЕН
+      </span>
+    </div>
+
+    <!-- Индикаторы активных бустеров -->
+    <div id="active-perks" class="flex flex-wrap gap-1.5 pt-0.5"></div>
+
+    <!-- Карточки бустеров -->
+    <div id="booster-cards" class="space-y-2 pt-1"></div>
+  </div>
+
+  <!-- РЕФЕРАЛЬНАЯ ПРОГРАММА -->
+  <div class="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 flex items-center justify-between gap-3 shadow-md">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-xl">👥</div>
+      <div>
+        <h4 class="font-bold text-xs text-white">Приглашай друзей</h4>
+        <p class="text-[10px] text-slate-400">
+          +150 🪵 и +50 💰 за каждого (позвано: <b id="referral-count" class="text-purple-300 font-mono">0</b>)
+        </p>
+      </div>
+    </div>
+    <button onclick="inviteFriend()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow active:scale-95 shrink-0">
+      Позвать друга
+    </button>
+  </div>
+
+  <!-- Продажа дерева (1:1) -->
   <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
     <div class="flex justify-between items-center text-xs">
-      <span class="font-bold text-slate-200">📦 Продажа дерева:</span>
+      <span class="font-bold text-slate-200">📦 Продажа древесины:</span>
       <span class="text-emerald-400 font-mono text-[11px] font-bold">1 🪵 = 1 💰</span>
     </div>
-    <div class="grid grid-cols-2 gap-2">
-      <button id="btn-sell-10" onclick="sellTenWood()" class="py-2.5 px-3 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition shadow active:scale-95">
-        Продать 10 🪵 (+10 💰)
-      </button>
-      <button id="btn-sell-all" onclick="sellAllWood()" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition shadow active:scale-95">
-        Продать всё (<span id="sell-all-label">0</span> 💰)
-      </button>
+    <div class="grid grid-cols-3 gap-2">
+      <button id="btn-sell-10" onclick="sellTenWood()" class="py-2 px-2 bg-emerald-800 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-xl text-[11px] font-bold transition shadow active:scale-95">10 🪵 (+10 💰)</button>
+      <button id="btn-sell-50" onclick="sellFiftyWood()" class="py-2 px-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 text-white rounded-xl text-[11px] font-bold transition shadow active:scale-95">50 🪵 (+50 💰)</button>
+      <button id="btn-sell-all" onclick="sellAllWood()" class="py-2 px-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl text-[11px] font-bold transition shadow active:scale-95">Всё (+<span id="sell-all-label">0</span> 💰)</button>
     </div>
   </div>
 
-  <!-- Улучшения -->
+  <!-- Артель лесорубов -->
   <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
     <div class="flex justify-between items-center text-xs">
-      <span class="font-bold text-slate-200">⚡ Улучшения:</span>
-      <span class="text-purple-300 text-[11px]">Рабочие рубят сами</span>
+      <span class="font-bold text-slate-200">⚡ Артель дровосеков:</span>
+      <span class="text-purple-300 text-[11px]">Найм & Топоры</span>
     </div>
 
     <button id="btn-hire" onclick="hireWorker()" class="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 p-3 rounded-xl font-bold text-xs transition shadow active:scale-95 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <span>👷</span>
+        <span id="next-worker-avatar" class="text-lg">🧔‍♂️</span>
         <div class="text-left">
-          <div>Нанять лесоруба (всего: <span id="workers-count">1</span>)</div>
-          <div class="text-[10px] text-purple-200 font-normal">+0.4 🪵 в секунду</div>
+          <div>Нанять: <span id="next-worker-name">Борис</span> (всего: <span id="workers-count">1</span>)</div>
+          <div class="text-[10px] text-purple-200 font-normal">+автосбор каждую секунду</div>
         </div>
       </div>
       <span class="bg-purple-800/80 px-2.5 py-1 rounded-lg font-mono"><span id="worker-cost">30</span> 💰</span>
@@ -141,17 +213,16 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
 
     <button id="btn-upgrade" onclick="upgradePower()" class="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-40 p-3 rounded-xl font-bold text-xs transition shadow active:scale-95 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <span>⚡</span>
+        <span id="cur-axe-icon" class="text-lg">🪓</span>
         <div class="text-left">
-          <div>Наточить топор (сила: <span id="power-val">1</span>)</div>
-          <div class="text-[10px] text-pink-200 font-normal">+1 к каждому клику</div>
+          <div>Улучшить топор (сила: <span id="power-val">1</span>)</div>
+          <div class="text-[10px] text-pink-200 font-normal"><span id="cur-axe-name">Топор новичка</span> (+1 к удару)</div>
         </div>
       </div>
       <span class="bg-pink-800/80 px-2.5 py-1 rounded-lg font-mono"><span id="power-cost">50</span> 💰</span>
     </button>
   </div>
 
-  <!-- Кнопка аварийного сброса -->
   <div class="text-center pt-2">
     <button onclick="resetGame()" class="text-[11px] text-slate-500 hover:text-rose-400 transition underline">
       🔄 Сбросить сохранение игры (если зависло)
@@ -159,7 +230,7 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
   </div>
 </main>
 
-<!-- Нижняя плавающая плашка корзины (только для вкладки магазина) -->
+<!-- Плавающая корзина -->
 <div id="floating-cart-bar" class="fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-30 max-w-md mx-auto">
   <button onclick="openCart()" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-95 text-white font-bold py-3 px-4 rounded-2xl shadow-xl shadow-pink-600/30 flex items-center justify-between transition active:scale-[0.99]">
     <div class="flex items-center gap-2">
@@ -185,9 +256,7 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
         <button onclick="closeCart()" class="text-slate-400 hover:text-white text-2xl w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center leading-none">&times;</button>
       </div>
     </div>
-
     <div id="cart-items" class="space-y-2 mb-4 max-h-60 overflow-y-auto pr-1"></div>
-
     <div class="border-t border-slate-800 pt-3 space-y-2.5">
       <div class="flex justify-between items-center text-sm font-semibold">
         <span class="text-slate-300">Итого:</span>
@@ -200,47 +269,63 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
   </div>
 </div>
 
-<!-- Модальное окно оплаты USDT -->
+<!-- Оплата заказа USDT -->
 <div id="pay-modal" class="modal hidden" onclick="closePaymentModal()">
   <div class="modal-box text-center space-y-3.5" onclick="event.stopPropagation()">
     <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center text-2xl mx-auto shadow">💎</div>
     <div>
-      <h3 class="text-base font-bold text-white">Инструкция по оплате USDT</h3>
+      <h3 class="text-base font-bold text-white">Инструкция по оплате заказа USDT</h3>
       <p class="text-xs text-slate-300 mt-1">
         Сумма к оплате: <strong class="text-amber-400 font-mono"><span id="pay-total-sum">0</span> ⭐</strong><br>
         Переведите сумму на кошелек в сети TON:
       </p>
     </div>
-
-    <!-- Адрес кошелька -->
     <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-left">
       <span class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Кошелек (USDT TON):</span>
       <span class="font-mono text-[11px] text-purple-200 break-all select-all block leading-tight">UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd</span>
     </div>
-
-    <!-- Кнопки действий -->
     <div class="space-y-2 pt-1">
       <button onclick="goToPaymentLink()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-600/25 active:scale-95 flex items-center justify-center gap-1.5">
         <span>🚀 Перейти к оплате в кошельке</span> ↗
       </button>
+      <button id="copy-link-btn" onclick="copyPaymentLink()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition active:scale-95 shadow">📋 Скопировать ссылку на оплату</button>
+      <button id="copy-wallet-btn" onclick="copyWalletAddress()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95">📋 Скопировать только адрес</button>
+    </div>
+    <button onclick="closePaymentModal()" class="w-full py-2 text-slate-400 hover:text-white text-xs transition">Вернуться назад</button>
+  </div>
+</div>
 
-      <button id="copy-link-btn" onclick="copyPaymentLink()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition active:scale-95 shadow">
-        📋 Скопировать ссылку на оплату
+<!-- Покупка VIP-бустера -->
+<div id="booster-modal" class="modal hidden" onclick="closeBoosterModal()">
+  <div class="modal-box text-center space-y-3.5" onclick="event.stopPropagation()">
+    <div id="modal-booster-icon" class="w-14 h-14 bg-gradient-to-br from-amber-500/20 to-orange-500/20 text-amber-400 rounded-2xl flex items-center justify-center text-3xl mx-auto shadow border border-amber-500/30">✨🪓</div>
+    <div>
+      <h3 id="modal-booster-name" class="text-base font-bold text-white">Золотой Топор Титана</h3>
+      <p id="modal-booster-desc" class="text-xs text-slate-300 mt-1">Урон от клика x5 навсегда</p>
+      <div class="mt-2 inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-xl">
+        <span id="modal-booster-price" class="font-mono font-black text-amber-300 text-sm">1 USDT</span>
+        <span class="text-slate-500">•</span>
+        <span id="modal-booster-stars" class="text-xs text-purple-300 font-bold">50 ⭐</span>
+      </div>
+    </div>
+    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-left">
+      <span class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Кошелек для перевода (USDT TON):</span>
+      <span class="font-mono text-[11px] text-purple-200 break-all select-all block leading-tight">UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd</span>
+    </div>
+    <div class="space-y-2 pt-1">
+      <button onclick="openBoosterTonkeeper()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-600/25 active:scale-95 flex items-center justify-center gap-1.5">
+        <span>🚀 Оплатить в Tonkeeper</span> ↗
       </button>
-
-      <button id="copy-wallet-btn" onclick="copyWalletAddress()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95">
-        📋 Скопировать только адрес
+      <button id="copy-booster-link-btn" onclick="copyBoosterLink()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl text-xs font-medium transition active:scale-95">📋 Скопировать ссылку на оплату</button>
+      <button onclick="confirmBoosterPayment()" class="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-pink-500 hover:opacity-95 text-slate-950 font-black rounded-xl text-xs transition shadow-lg shadow-amber-500/25 active:scale-95">
+        ⚡ Я перевел, активировать бустер!
       </button>
     </div>
-
-    <button onclick="closePaymentModal()" class="w-full py-2 text-slate-400 hover:text-white text-xs transition">
-      Вернуться назад (корзина сохранена)
-    </button>
+    <button onclick="closeBoosterModal()" class="w-full py-2 text-slate-400 hover:text-white text-xs transition">Отмена</button>
   </div>
 </div>
 
 <script>
-// Telegram SDK
 const tg = window.Telegram?.WebApp;
 if (tg) {
   try { tg.ready(); tg.expand(); } catch (e) {}
@@ -251,42 +336,78 @@ const USDT_WALLET = 'UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd';
 const PAYMENT_LINK = 'https://app.tonkeeper.com/transfer/' + USDT_WALLET;
 
 const products = [
-  { id:1, name:'Bitcoin', price:15, img: BASE + 'grok_1793863248535.jpg', emoji:'₿' },
-  { id:2, name:'Pepe', price:12, img: BASE + 'grok_1793863263231.jpg', emoji:'🐸' },
-  { id:3, name:'Solana', price:12, img: BASE + 'grok_1793863828992.png', emoji:'☀️' },
-  { id:4, name:'Pepe 2', price:12, img: BASE + 'grok_1793863836019.png', emoji:'🐸' },
-  { id:5, name:'Sticker 5', price:12, img: BASE + 'grok_1793863841233.png', emoji:'🦫' },
-  { id:6, name:'Sticker 6', price:12, img: BASE + 'grok_1793873660861.jpg', emoji:'🥷' },
-  { id:7, name:'Sticker 7', price:12, img: BASE + 'grok_1793873671190.jpg', emoji:'🐕' },
-  { id:8, name:'Sticker 8', price:12, img: BASE + 'grok_1793873671687.jpg', emoji:'👾' },
-  { id:9, name:'Sticker 9', price:12, img: BASE + 'grok_1793873675421.jpg', emoji:'🦆' },
-  { id:10, name:'Sticker 10', price:12, img: BASE + 'grok_1793873678612.jpg', emoji:'👸' },
-  { id:11, name:'Sticker 11', price:12, img: BASE + 'grok_1793873682610.jpg', emoji:'🐶' },
-  { id:12, name:'Sticker 12', price:12, img: BASE + 'grok_1793873686205.jpg', emoji:'🦊' },
-  { id:13, name:'Sticker 13', price:12, img: BASE + 'grok_1793873690727.jpg', emoji:'🐉' },
-  { id:14, name:'Sticker 14', price:12, img: BASE + 'grok_1793873695295.jpg', emoji:'💻' },
-  { id:15, name:'Sticker 15', price:12, img: BASE + 'grok_1793873698083.jpg', emoji:'🐼' },
-  { id:16, name:'Sticker 16', price:12, img: BASE + 'grok_1793873701177.jpg', emoji:'🔥' },
-  { id:17, name:'Sticker 17', price:12, img: BASE + 'grok_1793873703898.jpg', emoji:'😎' },
-  { id:18, name:'Sticker 18', price:12, img: BASE + 'grok_1793873708158.jpg', emoji:'🤖' },
-  { id:19, name:'Sticker 19', price:12, img: BASE + 'grok_1793873712441.jpg', emoji:'🧙' },
-  { id:20, name:'Sticker 20', price:12, img: BASE + 'grok_1793873715206.jpg', emoji:'✨' }
+  { id:1, name:'Bitcoin', price:120, img: BASE + 'grok_1793863248535.jpg', emoji:'₿' },
+  { id:2, name:'Pepe', price:80, img: BASE + 'grok_1793863263231.jpg', emoji:'🐸' },
+  { id:3, name:'Solana', price:95, img: BASE + 'grok_1793863828992.png', emoji:'☀️' },
+  { id:4, name:'Pepe 2', price:75, img: BASE + 'grok_1793863836019.png', emoji:'🐸' },
+  { id:5, name:'Sticker 5', price:60, img: BASE + 'grok_1793863841233.png', emoji:'🦫' },
+  { id:6, name:'Sticker 6', price:70, img: BASE + 'grok_1793873660861.jpg', emoji:'🥷' },
+  { id:7, name:'Sticker 7', price:65, img: BASE + 'grok_1793873671190.jpg', emoji:'🐕' },
+  { id:8, name:'Sticker 8', price:65, img: BASE + 'grok_1793873671687.jpg', emoji:'👾' },
+  { id:9, name:'Sticker 9', price:55, img: BASE + 'grok_1793873675421.jpg', emoji:'🦆' },
+  { id:10, name:'Sticker 10', price:70, img: BASE + 'grok_1793873678612.jpg', emoji:'👸' },
+  { id:11, name:'Sticker 11', price:55, img: BASE + 'grok_1793873682610.jpg', emoji:'🐶' },
+  { id:12, name:'Sticker 12', price:65, img: BASE + 'grok_1793873686205.jpg', emoji:'🦊' },
+  { id:13, name:'Sticker 13', price:85, img: BASE + 'grok_1793873690727.jpg', emoji:'🐉' },
+  { id:14, name:'Sticker 14', price:75, img: BASE + 'grok_1793873695295.jpg', emoji:'💻' },
+  { id:15, name:'Sticker 15', price:60, img: BASE + 'grok_1793873698083.jpg', emoji:'🐼' },
+  { id:16, name:'Sticker 16', price:70, img: BASE + 'grok_1793873701177.jpg', emoji:'🔥' },
+  { id:17, name:'Sticker 17', price:60, img: BASE + 'grok_1793873703898.jpg', emoji:'😎' },
+  { id:18, name:'Sticker 18', price:75, img: BASE + 'grok_1793873708158.jpg', emoji:'🤖' },
+  { id:19, name:'Sticker 19', price:80, img: BASE + 'grok_1793873712441.jpg', emoji:'🧙' },
+  { id:20, name:'Sticker 20', price:90, img: BASE + 'grok_1793873715206.jpg', emoji:'✨' }
 ];
 
-// Корзина
+const ROSTER = [
+  { id: 1, name: 'Борис', avatar: '🧔‍♂️', tool: '🪓', side: 'left' },
+  { id: 2, name: 'Иван', avatar: '🧑‍🌾', tool: '🪓', side: 'right' },
+  { id: 3, name: 'Сатоши', avatar: '🥷', tool: '🗡️', side: 'left' },
+  { id: 4, name: 'Громила', avatar: '🦹‍♂️', tool: '⚒️', side: 'right' },
+  { id: 5, name: 'Кибер-Валли', avatar: '🤖', tool: '⚡', side: 'left' },
+  { id: 6, name: 'Радагаст', avatar: '🧙‍♂️', tool: '✨', side: 'right' },
+];
+
+const VIP_BOOSTERS = [
+  { id: 'gold_axe', name: 'Золотой Топор Титана', desc: 'Урон от клика x5 навсегда', icon: '✨🪓', priceUsdt: 1, priceStars: 50, badge: 'ХИТ x5' },
+  { id: 'brigade_10', name: 'Бригада из 10 лесорубов', desc: 'Мгновенно нанимает +10 рабочих', icon: '👷‍♂️⚡', priceUsdt: 2, priceStars: 100, badge: '+10 РАБОЧИХ' },
+  { id: 'auto_sell', name: 'Авто-биржа древесины', desc: 'Авто-продажа 100% дерева за монеты', icon: '🤖💰', priceUsdt: 1.5, priceStars: 75, badge: 'АВТОМАТ' },
+  { id: 'chest_resources', name: 'Сундук Дровосека', desc: '+1,500 🪵 дерева и +800 💰 монет', icon: '🎁👑', priceUsdt: 0.5, priceStars: 25 },
+  { id: 'vip_bundle', name: 'VIP All-Inclusive Pass', desc: 'Золотой топор + Авто-биржа + 10 рабочих + Все стикеры', icon: '🌟💎', priceUsdt: 5, priceStars: 250, badge: '-60% СКИДКА' }
+];
+
+let selectedBooster = null;
+
+function getTree(cut) {
+  if (cut >= 20) return { name: 'Кристальное Древо Богов', icon: '💎', mult: 3, desc: 'Древо духов (x3)' };
+  if (cut >= 10) return { name: 'Золотой Клён', icon: '🍁', mult: 2, desc: 'Золотая кора (x2)' };
+  if (cut >= 5) return { name: 'Вековой Дуб', icon: '🌳', mult: 1.5, desc: 'Крепкая порода (x1.5)' };
+  return { name: 'Северная Ель', icon: '🌲', mult: 1, desc: 'Свежая хвоя (x1)' };
+}
+
+function getAxe(p) {
+  const power = Math.round(p);
+  if (power >= 15) return { name: 'Огненный Колун', icon: '🔥' };
+  if (power >= 8) return { name: 'Электро-Секира', icon: '⚡' };
+  if (power >= 4) return { name: 'Тяжёлый Топор', icon: '⚒️' };
+  if (power >= 2) return { name: 'Стальной Топор', icon: '🪓' };
+  return { name: 'Топор новичка', icon: '🪓' };
+}
+
 let cart = [];
 try {
   const saved = localStorage.getItem('stick_chop_cart');
   if (saved) cart = JSON.parse(saved);
 } catch (e) {}
-
 function saveCart() {
   try { localStorage.setItem('stick_chop_cart', JSON.stringify(cart)); } catch (e) {}
 }
 
-// Защищенная инициализация состояния игры
 function sanitizeGame(raw) {
-  const def = { wood: 0, money: 0, workers: 1, power: 1, last: Date.now(), treeHp: 10, treeMaxHp: 10, treesCut: 0 };
+  const def = {
+    wood: 0, money: 0, workers: 1, power: 1, last: Date.now(),
+    treeHp: 10, treeMaxHp: 10, treesCut: 0,
+    hasGoldAxe: false, hasAutoSell: false, hasVipPass: false, referralCount: 0
+  };
   if (!raw || typeof raw !== 'object') return def;
   return {
     wood: (typeof raw.wood === 'number' && !isNaN(raw.wood) && raw.wood >= 0) ? raw.wood : 0,
@@ -296,7 +417,11 @@ function sanitizeGame(raw) {
     last: (typeof raw.last === 'number' && !isNaN(raw.last)) ? raw.last : Date.now(),
     treeHp: (typeof raw.treeHp === 'number' && !isNaN(raw.treeHp) && raw.treeHp > 0) ? raw.treeHp : 10,
     treeMaxHp: (typeof raw.treeMaxHp === 'number' && !isNaN(raw.treeMaxHp) && raw.treeMaxHp >= 10) ? raw.treeMaxHp : 10,
-    treesCut: (typeof raw.treesCut === 'number' && !isNaN(raw.treesCut) && raw.treesCut >= 0) ? Math.floor(raw.treesCut) : 0
+    treesCut: (typeof raw.treesCut === 'number' && !isNaN(raw.treesCut) && raw.treesCut >= 0) ? Math.floor(raw.treesCut) : 0,
+    hasGoldAxe: Boolean(raw.hasGoldAxe),
+    hasAutoSell: Boolean(raw.hasAutoSell),
+    hasVipPass: Boolean(raw.hasVipPass),
+    referralCount: (typeof raw.referralCount === 'number' && !isNaN(raw.referralCount) && raw.referralCount >= 0) ? Math.floor(raw.referralCount) : 0
   };
 }
 
@@ -305,7 +430,6 @@ try {
   const savedGame = localStorage.getItem('stick_chop_game');
   if (savedGame) game = sanitizeGame(JSON.parse(savedGame));
 } catch (e) {}
-
 function saveGame() {
   try { localStorage.setItem('stick_chop_game', JSON.stringify(game)); } catch (e) {}
 }
@@ -320,7 +444,6 @@ function triggerHaptic(type = 'medium') {
   }
 }
 
-// Рендер каталога
 function renderProducts(list) {
   const c = document.getElementById('products');
   c.innerHTML = '';
@@ -351,7 +474,6 @@ function filterProducts() {
   renderProducts(products.filter(p => p.name.toLowerCase().includes(q)));
 }
 
-// Корзина
 function addToCart(id) {
   triggerHaptic('light');
   const p = products.find(x => x.id === id);
@@ -432,7 +554,6 @@ function closeCart() {
   document.getElementById('cart-modal').classList.add('hidden');
 }
 
-// Оплата
 function openPaymentModal() {
   triggerHaptic('heavy');
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -469,7 +590,6 @@ function copyWalletAddress() {
   setTimeout(() => btn.innerText = '📋 Скопировать только адрес', 2500);
 }
 
-// Вкладки
 function showShop() {
   triggerHaptic('light');
   document.getElementById('shop-section').classList.remove('hidden');
@@ -489,7 +609,6 @@ function showGame() {
   updateGameUI();
 }
 
-// Логика игры
 function showParticle(text, color = 'text-amber-300') {
   const box = document.getElementById('particle-box');
   if (!box) return;
@@ -502,34 +621,55 @@ function showParticle(text, color = 'text-amber-300') {
 
 function chopWood() {
   triggerHaptic('heavy');
-  const hit = Math.max(1, Math.round(game.power));
-  game.wood += hit;
-  game.treeHp -= hit;
-  showParticle(`+${hit} 🪵`, 'text-amber-300');
+  const tree = getTree(game.treesCut);
+  const goldMult = game.hasGoldAxe ? 5 : 1;
+  const vipMult = game.hasVipPass ? 2 : 1;
+  const hit = Math.max(1, Math.round(game.power * tree.mult * goldMult * vipMult));
 
-  // Анимация топора
+  if (game.hasAutoSell) {
+    game.money += hit;
+    showParticle(`+${hit} 💰 (Авто-биржа)`, 'text-emerald-400');
+  } else {
+    game.wood += hit;
+    showParticle(game.hasGoldAxe ? `+${hit} 🪵 (x5 Удар!)` : `+${hit} 🪵`, game.hasGoldAxe ? 'text-amber-300 font-black' : 'text-amber-300');
+  }
+
+  game.treeHp -= hit;
+
   const axe = document.getElementById('axe-emoji');
   if (axe) {
     axe.style.transform = 'rotate(-45deg) translate(8px, 12px) scale(1.25)';
     setTimeout(() => axe.style.transform = 'rotate(12deg)', 120);
   }
 
-  // Проверка сруба дерева
+  const treeEl = document.getElementById('tree-emoji');
+  if (treeEl) {
+    treeEl.style.transform = 'scale(0.9) rotate(-6deg)';
+    setTimeout(() => treeEl.style.transform = 'scale(1) rotate(0deg)', 120);
+  }
+
   if (game.treeHp <= 0) {
     game.treesCut++;
-    const bonusWood = 15;
-    const bonusMoney = 10;
-    game.wood += bonusWood;
-    game.money += bonusMoney;
+    const nextTree = getTree(game.treesCut);
+    const bonusWood = Math.round(20 * nextTree.mult * vipMult);
+    const bonusMoney = Math.round(12 * nextTree.mult * vipMult);
+    
+    if (game.hasAutoSell) {
+      game.money += bonusWood + bonusMoney;
+    } else {
+      game.wood += bonusWood;
+      game.money += bonusMoney;
+    }
+
     game.treeMaxHp = 10 + game.treesCut * 2;
     game.treeHp = game.treeMaxHp;
 
     showParticle(`+${bonusMoney} 💰 БОНУС!`, 'text-emerald-400');
     const banner = document.getElementById('bonus-banner');
     if (banner) {
-      banner.innerText = `🎉 Дерево #${game.treesCut} срублено! Бонус: +${bonusWood} 🪵 и +${bonusMoney} 💰!`;
+      banner.innerText = `🎉 Срублено: ${tree.name} #${game.treesCut}! Бонус: +${bonusWood} 🪵 и +${bonusMoney} 💰!`;
       banner.classList.remove('hidden');
-      setTimeout(() => banner.classList.add('hidden'), 3000);
+      setTimeout(() => banner.classList.add('hidden'), 3500);
     }
   }
 
@@ -538,13 +678,104 @@ function chopWood() {
   updateGameUI();
 }
 
+function openBoosterModal(id) {
+  triggerHaptic('medium');
+  selectedBooster = VIP_BOOSTERS.find(b => b.id === id);
+  if (!selectedBooster) return;
+
+  document.getElementById('modal-booster-icon').innerText = selectedBooster.icon;
+  document.getElementById('modal-booster-name').innerText = selectedBooster.name;
+  document.getElementById('modal-booster-desc').innerText = selectedBooster.desc;
+  document.getElementById('modal-booster-price').innerText = selectedBooster.priceUsdt + ' USDT';
+  document.getElementById('modal-booster-stars').innerText = selectedBooster.priceStars + ' ⭐';
+
+  document.getElementById('booster-modal').classList.remove('hidden');
+}
+
+function closeBoosterModal() {
+  document.getElementById('booster-modal').classList.add('hidden');
+}
+
+function openBoosterTonkeeper() {
+  triggerHaptic('heavy');
+  if (!selectedBooster) return;
+  const link = `https://app.tonkeeper.com/transfer/${USDT_WALLET}?text=VIP_${selectedBooster.id}`;
+  if (tg?.openLink) {
+    try { tg.openLink(link); return; } catch (e) {}
+  }
+  window.open(link, '_blank');
+}
+
+function copyBoosterLink() {
+  triggerHaptic('medium');
+  if (!selectedBooster) return;
+  const link = `https://app.tonkeeper.com/transfer/${USDT_WALLET}?text=VIP_${selectedBooster.id}`;
+  navigator.clipboard.writeText(link);
+  const btn = document.getElementById('copy-booster-link-btn');
+  btn.innerText = '✅ Ссылка скопирована!';
+  setTimeout(() => btn.innerText = '📋 Скопировать ссылку на оплату', 2500);
+}
+
+function confirmBoosterPayment() {
+  triggerHaptic('heavy');
+  if (!selectedBooster) return;
+
+  if (selectedBooster.id === 'gold_axe') {
+    game.hasGoldAxe = true;
+  } else if (selectedBooster.id === 'brigade_10') {
+    game.workers += 10;
+  } else if (selectedBooster.id === 'auto_sell') {
+    game.hasAutoSell = true;
+  } else if (selectedBooster.id === 'chest_resources') {
+    game.wood += 1500;
+    game.money += 800;
+  } else if (selectedBooster.id === 'vip_bundle') {
+    game.hasGoldAxe = true;
+    game.hasAutoSell = true;
+    game.hasVipPass = true;
+    game.workers += 10;
+    game.wood += 2000;
+    game.money += 1000;
+  }
+
+  saveGame();
+  closeBoosterModal();
+  updateGameUI();
+
+  const banner = document.getElementById('bonus-banner');
+  if (banner) {
+    banner.innerText = `🔥 Бустер "${selectedBooster.name}" успешно активирован!`;
+    banner.classList.remove('hidden');
+    setTimeout(() => banner.classList.add('hidden'), 4000);
+  }
+}
+
+function inviteFriend() {
+  triggerHaptic('heavy');
+  game.referralCount++;
+  game.wood += 150;
+  game.money += 50;
+  saveGame();
+  updateGameUI();
+  showParticle('+150 🪵 и +50 💰 за друга!', 'text-emerald-400');
+
+  const shareText = encodeURIComponent('🌲 Руби дерево и забирай редкие стикеры в Stick Chop! Дарю +150 дерева на старте! 🪓🪵');
+  const targetLink = `https://t.me/share/url?url=https://kovunov155-debug.github.io/Stickerchop./&text=${shareText}`;
+
+  if (tg?.openTelegramLink) {
+    try { tg.openTelegramLink(targetLink); return; } catch(e) {}
+  }
+  window.open(targetLink, '_blank');
+}
+
 function hireWorker() {
   const cost = game.workers * 30;
   if (game.money >= cost) {
     triggerHaptic('medium');
     game.money -= cost;
+    const worker = ROSTER[game.workers % ROSTER.length];
     game.workers++;
-    showParticle('+1 👷 Лесоруб!', 'text-purple-400');
+    showParticle(`+1 ${worker.avatar} ${worker.name}!`, 'text-purple-300');
     game.last = Date.now();
     saveGame();
     updateGameUI();
@@ -576,6 +807,18 @@ function sellTenWood() {
   }
 }
 
+function sellFiftyWood() {
+  if (game.wood >= 50) {
+    triggerHaptic('medium');
+    game.wood -= 50;
+    game.money += 50;
+    showParticle('+50 💰', 'text-emerald-400');
+    game.last = Date.now();
+    saveGame();
+    updateGameUI();
+  }
+}
+
 function sellAllWood() {
   const toSell = Math.floor(game.wood);
   if (toSell >= 1) {
@@ -598,19 +841,104 @@ function resetGame() {
 }
 
 function updateGameUI() {
+  const tree = getTree(game.treesCut);
+  const axe = getAxe(game.power);
+
+  document.getElementById('tree-icon').innerText = tree.icon;
+  document.getElementById('tree-name').innerText = tree.name;
+  document.getElementById('tree-emoji').innerText = tree.icon;
+  document.getElementById('tree-level-badge').innerText = '#' + (game.treesCut + 1);
+  document.getElementById('tree-multiplier').innerText = tree.desc;
+
+  document.getElementById('axe-emoji').innerText = axe.icon;
+  document.getElementById('btn-axe-icon').innerText = axe.icon;
+  document.getElementById('cur-axe-icon').innerText = axe.icon;
+  document.getElementById('cur-axe-name').innerText = axe.name;
+
   document.getElementById('wood').innerText = Math.floor(game.wood);
   document.getElementById('money').innerText = Math.floor(game.money);
   document.getElementById('workers-count').innerText = game.workers;
   document.getElementById('power-val').innerText = Math.round(game.power);
-  document.getElementById('chop-power-label').innerText = Math.max(1, Math.round(game.power));
-  
-  document.getElementById('tree-level').innerText = '#' + (game.treesCut + 1);
+  document.getElementById('referral-count').innerText = game.referralCount;
+
+  const goldMult = game.hasGoldAxe ? 5 : 1;
+  const vipMult = game.hasVipPass ? 2 : 1;
+  document.getElementById('chop-power-label').innerText = Math.max(1, Math.round(game.power * tree.mult * goldMult * vipMult));
+
   document.getElementById('hp-current').innerText = game.treeHp;
   document.getElementById('hp-max').innerText = game.treeMaxHp;
   document.getElementById('hp-bar').style.width = Math.max(0, Math.min(100, (game.treeHp / game.treeMaxHp) * 100)) + '%';
 
-  const idleRate = (game.workers * game.power * 0.4).toFixed(1);
+  const idleRate = (game.workers * game.power * 0.4 * tree.mult * vipMult).toFixed(1);
   document.getElementById('idle-income').innerText = idleRate;
+
+  const activeCount = Math.min(game.workers, 6);
+  const leftBox = document.getElementById('left-lumberjacks');
+  const rightBox = document.getElementById('right-lumberjacks');
+  leftBox.innerHTML = '';
+  rightBox.innerHTML = '';
+
+  for (let i = 0; i < activeCount; i++) {
+    const w = ROSTER[i];
+    const div = document.createElement('div');
+    div.className = `${w.side === 'left' ? 'anim-jack-left' : 'anim-jack-right'} flex items-center gap-1 bg-slate-900/85 backdrop-blur border border-purple-500/40 rounded-xl px-2 py-1 shadow-md text-xs`;
+    div.style.animationDelay = (i * 0.25) + 's';
+    
+    if (w.side === 'left') {
+      div.innerHTML = `<span class="text-xl">${w.avatar}</span><span class="text-sm">${w.tool}</span><span class="text-[9px] font-bold text-purple-200 truncate max-w-[42px]">${w.name}</span>`;
+      leftBox.appendChild(div);
+    } else {
+      div.innerHTML = `<span class="text-[9px] font-bold text-purple-200 truncate max-w-[42px]">${w.name}</span><span class="text-sm">${w.tool}</span><span class="text-xl">${w.avatar}</span>`;
+      rightBox.appendChild(div);
+    }
+  }
+
+  const campEl = document.getElementById('camp-counter');
+  if (game.workers > 6) {
+    campEl.classList.remove('hidden');
+    document.getElementById('camp-extra').innerText = game.workers - 6;
+  } else {
+    campEl.classList.add('hidden');
+  }
+
+  const bBox = document.getElementById('booster-cards');
+  bBox.innerHTML = '';
+  VIP_BOOSTERS.forEach(b => {
+    const isBought = (b.id === 'gold_axe' && game.hasGoldAxe) || (b.id === 'auto_sell' && game.hasAutoSell) || (b.id === 'vip_bundle' && game.hasVipPass);
+    const div = document.createElement('div');
+    div.className = 'bg-slate-950/80 border border-slate-800 hover:border-amber-500/50 p-2.5 rounded-2xl flex items-center justify-between gap-2.5 shadow';
+    div.innerHTML = `
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl shrink-0">${b.icon}</div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <h4 class="font-bold text-xs text-white truncate">${b.name}</h4>
+            ${b.badge ? `<span class="bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0">${b.badge}</span>` : ''}
+          </div>
+          <p class="text-[10px] text-slate-400 truncate">${b.desc}</p>
+        </div>
+      </div>
+      <div class="shrink-0 flex flex-col items-end gap-1">
+        <div class="text-right">
+          <div class="font-mono font-bold text-xs text-amber-300">${b.priceUsdt} USDT</div>
+          <div class="text-[9px] text-slate-500">${b.priceStars} ⭐</div>
+        </div>
+        ${isBought ? `<span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Куплено</span>` : `<button onclick="openBoosterModal('${b.id}')" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-slate-950 font-black text-[11px] px-3 py-1 rounded-xl shadow active:scale-95">Купить</button>`}
+      </div>`;
+    bBox.appendChild(div);
+  });
+
+  const perksBox = document.getElementById('active-perks');
+  perksBox.innerHTML = '';
+  if (game.hasGoldAxe) perksBox.innerHTML += `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1"><span>✨🪓</span> Золотой топор (x5 Удар)</span>`;
+  if (game.hasAutoSell) perksBox.innerHTML += `<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1"><span>🤖💰</span> Авто-биржа активна</span>`;
+  if (game.hasVipPass) perksBox.innerHTML += `<span class="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1"><span>🌟</span> x2 доход ко всему</span>`;
+
+  document.getElementById('vip-status-badge').style.display = game.hasVipPass ? 'block' : 'none';
+
+  const nextW = ROSTER[game.workers % ROSTER.length];
+  document.getElementById('next-worker-avatar').innerText = nextW.avatar;
+  document.getElementById('next-worker-name').innerText = nextW.name;
 
   const workerCost = game.workers * 30;
   const powerCost = Math.floor(game.power * 50);
@@ -620,22 +948,57 @@ function updateGameUI() {
   document.getElementById('btn-hire').disabled = game.money < workerCost;
   document.getElementById('btn-upgrade').disabled = game.money < powerCost;
   document.getElementById('btn-sell-10').disabled = game.wood < 10;
+  document.getElementById('btn-sell-50').disabled = game.wood < 50;
   document.getElementById('btn-sell-all').disabled = Math.floor(game.wood) < 1;
   document.getElementById('sell-all-label').innerText = Math.floor(game.wood);
 }
 
-// Автоматический сбор деревом рабочими
 setInterval(() => {
   const sec = Math.max(0, (Date.now() - game.last) / 1000);
   if (sec > 0) {
-    game.wood += game.workers * game.power * sec * 0.4;
+    const tree = getTree(game.treesCut);
+    const vipMult = game.hasVipPass ? 2 : 1;
+    const gained = game.workers * game.power * sec * 0.4 * tree.mult * vipMult;
+    
+    if (game.hasAutoSell) {
+      game.money += gained;
+    } else {
+      game.wood += gained;
+    }
+    
+    const dmg = Math.max(1, Math.round(game.workers * 0.6));
+    game.treeHp -= dmg;
+
+    if (game.treeHp <= 0) {
+      game.treesCut++;
+      const nextTree = getTree(game.treesCut);
+      const bonusWood = Math.round(15 * nextTree.mult * vipMult);
+      const bonusMoney = Math.round(10 * nextTree.mult * vipMult);
+      
+      if (game.hasAutoSell) {
+        game.money += bonusWood + bonusMoney;
+      } else {
+        game.wood += bonusWood;
+        game.money += bonusMoney;
+      }
+
+      game.treeMaxHp = 10 + game.treesCut * 2;
+      game.treeHp = game.treeMaxHp;
+
+      const banner = document.getElementById('bonus-banner');
+      if (banner) {
+        banner.innerText = `🌲 Лесорубы срубили дерево #${game.treesCut}! Бонус: +${bonusWood} 🪵 и +${bonusMoney} 💰!`;
+        banner.classList.remove('hidden');
+        setTimeout(() => banner.classList.add('hidden'), 3000);
+      }
+    }
+
     game.last = Date.now();
     saveGame();
     updateGameUI();
   }
 }, 1000);
 
-// Инициализация при старте
 renderProducts(products);
 updateCart();
 updateGameUI();
