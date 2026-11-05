@@ -12,6 +12,11 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
 .modal { position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(6px); display:flex; align-items:flex-end; justify-content:center; padding:12px; z-index:50; }
 .modal-box { width:100%; max-width:440px; max-height:85vh; overflow-y:auto; background:#0f172a; border:1px solid #334155; border-radius:24px; padding:18px; }
 .hidden { display:none!important; }
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-35px); }
+}
+.float-text { animation: floatUp 0.7s ease-out forwards; position: absolute; pointer-events: none; font-weight: 800; font-size: 14px; }
 </style>
 </head>
 <body class="selection:bg-purple-500 selection:text-white">
@@ -53,54 +58,109 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
   <div id="products" class="grid grid-cols-2 gap-3"></div>
 </main>
 
-<!-- Вкладка 2: Игра -->
-<main id="game-section" class="max-w-md mx-auto p-4 pb-28 hidden space-y-4">
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center shadow-lg">
-    <div id="axe-icon" onclick="chopWood()" class="text-6xl mb-2 transition-transform cursor-pointer select-none active:scale-125 active:rotate-12">🪓</div>
-    <h2 class="text-lg font-bold text-white">Stick Chop Simulator</h2>
-    <p class="text-xs text-slate-400">Нажимайте кнопку или топор, чтобы рубить дерево!</p>
+<!-- Вкладка 2: Игра Stick Chop -->
+<main id="game-section" class="max-w-md mx-auto p-4 pb-16 hidden space-y-3.5">
+  <!-- Бонусное оповещение -->
+  <div id="bonus-banner" class="hidden bg-gradient-to-r from-amber-500/20 via-pink-500/20 to-purple-500/20 border border-amber-400/50 p-2.5 rounded-xl text-center text-xs font-bold text-amber-300 shadow"></div>
 
-    <button onclick="chopWood()" class="mt-3 w-full py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:opacity-95 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-600/25 active:scale-95 transition">
-      🪓 Рубить дерево (+<span id="chop-power-label">1</span> 🪵)
+  <!-- Арена рубки дерева -->
+  <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center shadow-xl relative overflow-hidden">
+    <div id="particle-box" class="absolute inset-0 pointer-events-none flex items-center justify-center"></div>
+
+    <div class="flex justify-between items-center text-xs text-slate-400 mb-2">
+      <span class="font-semibold text-purple-300">🌲 Дерево <span id="tree-level">#1</span></span>
+      <span class="text-emerald-400 font-mono font-bold">+<span id="idle-income">0.4</span> 🪵/сек</span>
+    </div>
+
+    <!-- HP дерева -->
+    <div class="w-full bg-slate-950 rounded-full h-3.5 border border-slate-800 overflow-hidden mb-2 p-0.5">
+      <div id="hp-bar" class="bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 h-full rounded-full transition-all duration-100" style="width: 100%;"></div>
+    </div>
+    <div class="text-[11px] text-slate-400 font-mono mb-2">
+      Здоровье дерева: <strong id="hp-current" class="text-white">10</strong> / <span id="hp-max">10</span> HP
+    </div>
+
+    <!-- Анимация дерева и топора -->
+    <div id="tree-container" onclick="chopWood()" class="relative my-2 select-none cursor-pointer inline-block transition-transform active:scale-90">
+      <div id="tree-emoji" class="text-7xl">🌲</div>
+      <div id="axe-emoji" class="absolute -top-2 -right-4 text-4xl transition-transform">🪓</div>
+    </div>
+
+    <button onclick="chopWood()" class="mt-2 w-full py-3.5 bg-gradient-to-r from-amber-600 via-orange-600 to-pink-600 hover:opacity-95 text-white font-black text-sm rounded-2xl shadow-xl shadow-orange-600/30 active:scale-95 transition">
+      🪓 УДАРИТЬ ТОПОРОМ (+<span id="chop-power-label">1</span> 🪵)
     </button>
   </div>
 
+  <!-- Баланс ресурсов -->
   <div class="grid grid-cols-2 gap-3 text-center">
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md">
       <div class="text-2xl mb-1">🪵</div>
-      <div id="wood" class="text-xl font-bold text-amber-300 font-mono">0</div>
-      <div class="text-xs text-slate-400">Дерево</div>
+      <div id="wood" class="text-2xl font-black text-amber-300 font-mono">0</div>
+      <div class="text-xs text-slate-400 font-medium">Дерево в запасе</div>
     </div>
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md">
       <div class="text-2xl mb-1">💰</div>
-      <div id="money" class="text-xl font-bold text-emerald-400 font-mono">0</div>
-      <div class="text-xs text-slate-400">Деньги</div>
+      <div id="money" class="text-2xl font-black text-emerald-400 font-mono">0</div>
+      <div class="text-xs text-slate-400 font-medium">Деньги лесоруба</div>
     </div>
   </div>
 
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs flex justify-around">
-    <div>👷 Рабочих: <b id="workers" class="text-purple-400 font-mono text-sm">1</b></div>
-    <div class="h-4 w-px bg-slate-800"></div>
-    <div>⚡ Сила топора: <b id="power" class="text-pink-400 font-mono text-sm">1</b></div>
+  <!-- Продажа дерева (Гарантированно 1 🪵 = 1 💰) -->
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+    <div class="flex justify-between items-center text-xs">
+      <span class="font-bold text-slate-200">📦 Продажа дерева:</span>
+      <span class="text-emerald-400 font-mono text-[11px] font-bold">1 🪵 = 1 💰</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <button id="btn-sell-10" onclick="sellTenWood()" class="py-2.5 px-3 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition shadow active:scale-95">
+        Продать 10 🪵 (+10 💰)
+      </button>
+      <button id="btn-sell-all" onclick="sellAllWood()" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition shadow active:scale-95">
+        Продать всё (<span id="sell-all-label">0</span> 💰)
+      </button>
+    </div>
   </div>
 
-  <div class="space-y-2">
-    <button id="btn-hire" onclick="hireWorker()" class="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 py-3 rounded-xl font-bold text-xs transition shadow active:scale-95">
-      👷 Нанять рабочего (<span id="worker-cost">50</span> 💰)
+  <!-- Улучшения -->
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+    <div class="flex justify-between items-center text-xs">
+      <span class="font-bold text-slate-200">⚡ Улучшения:</span>
+      <span class="text-purple-300 text-[11px]">Рабочие рубят сами</span>
+    </div>
+
+    <button id="btn-hire" onclick="hireWorker()" class="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-40 p-3 rounded-xl font-bold text-xs transition shadow active:scale-95 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span>👷</span>
+        <div class="text-left">
+          <div>Нанять лесоруба (всего: <span id="workers-count">1</span>)</div>
+          <div class="text-[10px] text-purple-200 font-normal">+0.4 🪵 в секунду</div>
+        </div>
+      </div>
+      <span class="bg-purple-800/80 px-2.5 py-1 rounded-lg font-mono"><span id="worker-cost">30</span> 💰</span>
     </button>
 
-    <button id="btn-upgrade" onclick="upgradePower()" class="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-40 py-3 rounded-xl font-bold text-xs transition shadow active:scale-95">
-      ⚡ Улучшить силу топора (<span id="power-cost">100</span> 💰)
+    <button id="btn-upgrade" onclick="upgradePower()" class="w-full bg-pink-600 hover:bg-pink-500 disabled:opacity-40 p-3 rounded-xl font-bold text-xs transition shadow active:scale-95 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span>⚡</span>
+        <div class="text-left">
+          <div>Наточить топор (сила: <span id="power-val">1</span>)</div>
+          <div class="text-[10px] text-pink-200 font-normal">+1 к каждому клику</div>
+        </div>
+      </div>
+      <span class="bg-pink-800/80 px-2.5 py-1 rounded-lg font-mono"><span id="power-cost">50</span> 💰</span>
     </button>
+  </div>
 
-    <button id="btn-sell" onclick="sellWood()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-xs transition shadow active:scale-95">
-      📦 Продать всё дерево за деньги
+  <!-- Кнопка аварийного сброса -->
+  <div class="text-center pt-2">
+    <button onclick="resetGame()" class="text-[11px] text-slate-500 hover:text-rose-400 transition underline">
+      🔄 Сбросить сохранение игры (если зависло)
     </button>
   </div>
 </main>
 
-<!-- Нижняя плавающая панель корзины -->
-<div class="fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-30 max-w-md mx-auto">
+<!-- Нижняя плавающая плашка корзины (только для вкладки магазина) -->
+<div id="floating-cart-bar" class="fixed bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent z-30 max-w-md mx-auto">
   <button onclick="openCart()" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:opacity-95 text-white font-bold py-3 px-4 rounded-2xl shadow-xl shadow-pink-600/30 flex items-center justify-between transition active:scale-[0.99]">
     <div class="flex items-center gap-2">
       <span>🛒</span>
@@ -155,7 +215,7 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
     <!-- Адрес кошелька -->
     <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-left">
       <span class="text-[9px] text-slate-400 uppercase font-bold block mb-1">Кошелек (USDT TON):</span>
-      <span id="wallet-text" class="font-mono text-[11px] text-purple-200 break-all select-all block leading-tight">UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd</span>
+      <span class="font-mono text-[11px] text-purple-200 break-all select-all block leading-tight">UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd</span>
     </div>
 
     <!-- Кнопки действий -->
@@ -180,7 +240,7 @@ body { margin:0; background:#020617; color:#fff; font-family:-apple-system, Blin
 </div>
 
 <script>
-// Безопасная инициализация Telegram SDK
+// Telegram SDK
 const tg = window.Telegram?.WebApp;
 if (tg) {
   try { tg.ready(); tg.expand(); } catch (e) {}
@@ -213,7 +273,7 @@ const products = [
   { id:20, name:'Sticker 20', price:12, img: BASE + 'grok_1793873715206.jpg', emoji:'✨' }
 ];
 
-// Загрузка корзины из localStorage
+// Корзина
 let cart = [];
 try {
   const saved = localStorage.getItem('stick_chop_cart');
@@ -224,18 +284,43 @@ function saveCart() {
   try { localStorage.setItem('stick_chop_cart', JSON.stringify(cart)); } catch (e) {}
 }
 
-// Загрузка игры из localStorage
-let game = { wood: 0, money: 0, workers: 1, power: 1, last: Date.now() };
+// Защищенная инициализация состояния игры
+function sanitizeGame(raw) {
+  const def = { wood: 0, money: 0, workers: 1, power: 1, last: Date.now(), treeHp: 10, treeMaxHp: 10, treesCut: 0 };
+  if (!raw || typeof raw !== 'object') return def;
+  return {
+    wood: (typeof raw.wood === 'number' && !isNaN(raw.wood) && raw.wood >= 0) ? raw.wood : 0,
+    money: (typeof raw.money === 'number' && !isNaN(raw.money) && raw.money >= 0) ? raw.money : 0,
+    workers: (typeof raw.workers === 'number' && !isNaN(raw.workers) && raw.workers >= 1) ? Math.floor(raw.workers) : 1,
+    power: (typeof raw.power === 'number' && !isNaN(raw.power) && raw.power >= 1) ? raw.power : 1,
+    last: (typeof raw.last === 'number' && !isNaN(raw.last)) ? raw.last : Date.now(),
+    treeHp: (typeof raw.treeHp === 'number' && !isNaN(raw.treeHp) && raw.treeHp > 0) ? raw.treeHp : 10,
+    treeMaxHp: (typeof raw.treeMaxHp === 'number' && !isNaN(raw.treeMaxHp) && raw.treeMaxHp >= 10) ? raw.treeMaxHp : 10,
+    treesCut: (typeof raw.treesCut === 'number' && !isNaN(raw.treesCut) && raw.treesCut >= 0) ? Math.floor(raw.treesCut) : 0
+  };
+}
+
+let game = sanitizeGame(null);
 try {
   const savedGame = localStorage.getItem('stick_chop_game');
-  if (savedGame) game = JSON.parse(savedGame);
+  if (savedGame) game = sanitizeGame(JSON.parse(savedGame));
 } catch (e) {}
 
 function saveGame() {
   try { localStorage.setItem('stick_chop_game', JSON.stringify(game)); } catch (e) {}
 }
 
-// Рендер товаров
+function triggerHaptic(type = 'medium') {
+  if (tg?.HapticFeedback) {
+    try {
+      if (type === 'light') tg.HapticFeedback.impactOccurred('light');
+      else if (type === 'heavy') tg.HapticFeedback.impactOccurred('heavy');
+      else tg.HapticFeedback.impactOccurred('medium');
+    } catch (e) {}
+  }
+}
+
+// Рендер каталога
 function renderProducts(list) {
   const c = document.getElementById('products');
   c.innerHTML = '';
@@ -252,7 +337,7 @@ function renderProducts(list) {
         <h4 class="font-bold text-xs truncate text-white">${p.name}</h4>
         <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-800">
           <span class="text-amber-400 font-bold text-xs font-mono">${p.price} ⭐</span>
-          <button onclick="addToCart(${p.id})" class="bg-purple-600 hover:bg-purple-500 text-white text-xs px-3 py-1 rounded-lg font-bold transition active:scale-95">
+          <button onclick="addToCart(${p.id})" class="bg-purple-600 hover:bg-purple-500 text-white text-xs px-3 py-1 rounded-lg font-bold transition active:scale-95 shadow">
             ${inCart ? '+' + inCart.qty : '+'}
           </button>
         </div>
@@ -268,6 +353,7 @@ function filterProducts() {
 
 // Корзина
 function addToCart(id) {
+  triggerHaptic('light');
   const p = products.find(x => x.id === id);
   const it = cart.find(x => x.id === id);
   if (it) it.qty++;
@@ -278,6 +364,7 @@ function addToCart(id) {
 }
 
 function changeQty(id, delta) {
+  triggerHaptic('light');
   const it = cart.find(x => x.id === id);
   if (!it) return;
   it.qty += delta;
@@ -288,6 +375,7 @@ function changeQty(id, delta) {
 }
 
 function clearCart() {
+  triggerHaptic('medium');
   cart = [];
   saveCart();
   updateCart();
@@ -335,6 +423,7 @@ function updateCart() {
 }
 
 function openCart() {
+  triggerHaptic('medium');
   updateCart();
   document.getElementById('cart-modal').classList.remove('hidden');
 }
@@ -343,8 +432,9 @@ function closeCart() {
   document.getElementById('cart-modal').classList.add('hidden');
 }
 
-// Оплата USDT
+// Оплата
 function openPaymentModal() {
+  triggerHaptic('heavy');
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   document.getElementById('pay-total-sum').innerText = total;
   closeCart();
@@ -356,6 +446,7 @@ function closePaymentModal() {
 }
 
 function goToPaymentLink() {
+  triggerHaptic('heavy');
   if (tg && typeof tg.openLink === 'function') {
     try { tg.openLink(PAYMENT_LINK); return; } catch(e) {}
   }
@@ -363,6 +454,7 @@ function goToPaymentLink() {
 }
 
 function copyPaymentLink() {
+  triggerHaptic('medium');
   navigator.clipboard.writeText(PAYMENT_LINK);
   const btn = document.getElementById('copy-link-btn');
   btn.innerText = '✅ Ссылка скопирована!';
@@ -370,41 +462,89 @@ function copyPaymentLink() {
 }
 
 function copyWalletAddress() {
+  triggerHaptic('medium');
   navigator.clipboard.writeText(USDT_WALLET);
   const btn = document.getElementById('copy-wallet-btn');
   btn.innerText = '✅ Адрес скопирован!';
   setTimeout(() => btn.innerText = '📋 Скопировать только адрес', 2500);
 }
 
-// Переключение вкладок
+// Вкладки
 function showShop() {
+  triggerHaptic('light');
   document.getElementById('shop-section').classList.remove('hidden');
   document.getElementById('game-section').classList.add('hidden');
+  document.getElementById('floating-cart-bar').classList.remove('hidden');
   document.getElementById('tab-shop').className = 'flex-1 py-3 text-sm font-bold tab-active transition flex items-center justify-center gap-1.5';
   document.getElementById('tab-game').className = 'flex-1 py-3 text-sm font-bold text-slate-400 transition flex items-center justify-center gap-1.5';
 }
 
 function showGame() {
+  triggerHaptic('light');
   document.getElementById('shop-section').classList.add('hidden');
   document.getElementById('game-section').classList.remove('hidden');
+  document.getElementById('floating-cart-bar').classList.add('hidden');
   document.getElementById('tab-shop').className = 'flex-1 py-3 text-sm font-bold text-slate-400 transition flex items-center justify-center gap-1.5';
   document.getElementById('tab-game').className = 'flex-1 py-3 text-sm font-bold tab-active transition flex items-center justify-center gap-1.5';
+  updateGameUI();
 }
 
-// Игра
+// Логика игры
+function showParticle(text, color = 'text-amber-300') {
+  const box = document.getElementById('particle-box');
+  if (!box) return;
+  const p = document.createElement('div');
+  p.className = `float-text ${color}`;
+  p.innerText = text;
+  box.appendChild(p);
+  setTimeout(() => p.remove(), 700);
+}
+
 function chopWood() {
-  game.wood += Math.max(1, Math.round(game.power));
-  game.money += Math.max(0.5, game.power * 0.2);
+  triggerHaptic('heavy');
+  const hit = Math.max(1, Math.round(game.power));
+  game.wood += hit;
+  game.treeHp -= hit;
+  showParticle(`+${hit} 🪵`, 'text-amber-300');
+
+  // Анимация топора
+  const axe = document.getElementById('axe-emoji');
+  if (axe) {
+    axe.style.transform = 'rotate(-45deg) translate(8px, 12px) scale(1.25)';
+    setTimeout(() => axe.style.transform = 'rotate(12deg)', 120);
+  }
+
+  // Проверка сруба дерева
+  if (game.treeHp <= 0) {
+    game.treesCut++;
+    const bonusWood = 15;
+    const bonusMoney = 10;
+    game.wood += bonusWood;
+    game.money += bonusMoney;
+    game.treeMaxHp = 10 + game.treesCut * 2;
+    game.treeHp = game.treeMaxHp;
+
+    showParticle(`+${bonusMoney} 💰 БОНУС!`, 'text-emerald-400');
+    const banner = document.getElementById('bonus-banner');
+    if (banner) {
+      banner.innerText = `🎉 Дерево #${game.treesCut} срублено! Бонус: +${bonusWood} 🪵 и +${bonusMoney} 💰!`;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 3000);
+    }
+  }
+
   game.last = Date.now();
   saveGame();
   updateGameUI();
 }
 
 function hireWorker() {
-  const cost = game.workers * 50;
+  const cost = game.workers * 30;
   if (game.money >= cost) {
+    triggerHaptic('medium');
     game.money -= cost;
     game.workers++;
+    showParticle('+1 👷 Лесоруб!', 'text-purple-400');
     game.last = Date.now();
     saveGame();
     updateGameUI();
@@ -412,22 +552,46 @@ function hireWorker() {
 }
 
 function upgradePower() {
-  const cost = Math.floor(game.power * 100);
+  const cost = Math.floor(game.power * 50);
   if (game.money >= cost) {
+    triggerHaptic('medium');
     game.money -= cost;
-    game.power += 0.5;
+    game.power += 1;
+    showParticle('+1 ⚡ Сила!', 'text-pink-400');
     game.last = Date.now();
     saveGame();
     updateGameUI();
   }
 }
 
-function sellWood() {
-  if (game.wood >= 1) {
-    const earned = Math.floor(game.wood * 0.8);
-    game.wood = 0;
-    game.money += earned;
+function sellTenWood() {
+  if (game.wood >= 10) {
+    triggerHaptic('medium');
+    game.wood -= 10;
+    game.money += 10;
+    showParticle('+10 💰', 'text-emerald-400');
     game.last = Date.now();
+    saveGame();
+    updateGameUI();
+  }
+}
+
+function sellAllWood() {
+  const toSell = Math.floor(game.wood);
+  if (toSell >= 1) {
+    triggerHaptic('heavy');
+    game.wood -= toSell;
+    game.money += toSell;
+    showParticle(`+${toSell} 💰 Продано!`, 'text-emerald-400');
+    game.last = Date.now();
+    saveGame();
+    updateGameUI();
+  }
+}
+
+function resetGame() {
+  if (confirm('Сбросить весь прогресс игры и начать заново?')) {
+    game = sanitizeGame(null);
     saveGame();
     updateGameUI();
   }
@@ -436,22 +600,35 @@ function sellWood() {
 function updateGameUI() {
   document.getElementById('wood').innerText = Math.floor(game.wood);
   document.getElementById('money').innerText = Math.floor(game.money);
-  document.getElementById('workers').innerText = game.workers;
-  document.getElementById('power').innerText = game.power.toFixed(1);
+  document.getElementById('workers-count').innerText = game.workers;
+  document.getElementById('power-val').innerText = Math.round(game.power);
   document.getElementById('chop-power-label').innerText = Math.max(1, Math.round(game.power));
-  document.getElementById('worker-cost').innerText = game.workers * 50;
-  document.getElementById('power-cost').innerText = Math.floor(game.power * 100);
+  
+  document.getElementById('tree-level').innerText = '#' + (game.treesCut + 1);
+  document.getElementById('hp-current').innerText = game.treeHp;
+  document.getElementById('hp-max').innerText = game.treeMaxHp;
+  document.getElementById('hp-bar').style.width = Math.max(0, Math.min(100, (game.treeHp / game.treeMaxHp) * 100)) + '%';
 
-  document.getElementById('btn-hire').disabled = game.money < (game.workers * 50);
-  document.getElementById('btn-upgrade').disabled = game.money < Math.floor(game.power * 100);
+  const idleRate = (game.workers * game.power * 0.4).toFixed(1);
+  document.getElementById('idle-income').innerText = idleRate;
+
+  const workerCost = game.workers * 30;
+  const powerCost = Math.floor(game.power * 50);
+  document.getElementById('worker-cost').innerText = workerCost;
+  document.getElementById('power-cost').innerText = powerCost;
+
+  document.getElementById('btn-hire').disabled = game.money < workerCost;
+  document.getElementById('btn-upgrade').disabled = game.money < powerCost;
+  document.getElementById('btn-sell-10').disabled = game.wood < 10;
+  document.getElementById('btn-sell-all').disabled = Math.floor(game.wood) < 1;
+  document.getElementById('sell-all-label').innerText = Math.floor(game.wood);
 }
 
-// Игровой цикл
+// Автоматический сбор деревом рабочими
 setInterval(() => {
   const sec = Math.max(0, (Date.now() - game.last) / 1000);
   if (sec > 0) {
-    game.wood += game.workers * game.power * sec * 0.5;
-    game.money += game.workers * game.power * sec * 0.15;
+    game.wood += game.workers * game.power * sec * 0.4;
     game.last = Date.now();
     saveGame();
     updateGameUI();
