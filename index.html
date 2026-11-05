@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Stick Chop — Shop & Game</title>
+<title>Stick Chop</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 body{margin:0;background:#020617;color:#fff;font-family:Arial,sans-serif}
 .tab-active{background:linear-gradient(to right,#9333ea,#db2777)}
-.modal{position:fixed;inset:0;background:#000c;display:flex;align-items:flex-end;justify-content:center;padding:12px;z-index:50}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:flex-end;justify-content:center;padding:12px;z-index:50}
 .modal-box{width:100%;max-width:440px;max-height:85vh;overflow:auto;background:#0f172a;border:1px solid #334155;border-radius:24px;padding:18px}
 .hidden{display:none!important}
 </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
 
 <header class="sticky top-0 z-40 bg-slate-900/95 border-b border-slate-800 p-4 flex justify-between items-center">
   <div class="flex items-center gap-3">
@@ -32,12 +32,12 @@ body{margin:0;background:#020617;color:#fff;font-family:Arial,sans-serif}
   <button id="tab-game" class="flex-1 py-3 text-sm font-semibold text-slate-400" onclick="showGame()">🪓 Игра</button>
 </div>
 
-<main id="shop-section" class="max-w-md mx-auto p-4 pb-28 flex-1">
+<main id="shop-section" class="max-w-md mx-auto p-4 pb-28">
   <input id="search" type="search" placeholder="Поиск..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm mb-4 outline-none">
   <div id="products" class="grid grid-cols-2 gap-3"></div>
 </main>
 
-<main id="game-section" class="max-w-md mx-auto p-4 pb-28 flex-1 hidden">
+<main id="game-section" class="max-w-md mx-auto p-4 pb-28 hidden">
   <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center mb-4">
     <div class="text-5xl mb-2">🪓</div>
     <h2 class="text-lg font-bold">Stick Chop</h2>
@@ -75,37 +75,37 @@ body{margin:0;background:#020617;color:#fff;font-family:Arial,sans-serif}
 
 <script>
 const tg = window.Telegram?.WebApp;
-if(tg){tg.ready();tg.expand();}
+if (tg) { tg.ready(); tg.expand(); }
 
 const BASE = "https://kovunov155-debug.github.io/Stickerchop./";
 const products = [
-  {id:1,name:"Bitcoin",price:15,img:BASE+"grok_1793863248535.jpg"},
-  {id:2,name:"Pepe",price:12,img:BASE+"grok_1793863263231.jpg"},
-  {id:3,name:"Solana",price:12,img:BASE+"grok_1793863828992.png"},
-  {id:4,name:"Pepe 2",price:12,img:BASE+"grok_1793863836019.png"},
-  {id:5,name:"Sticker 5",price:12,img:BASE+"grok_1793863841233.png"},
-  {id:6,name:"Sticker 6",price:12,img:BASE+"grok_1793873660861.jpg"},
-  {id:7,name:"Sticker 7",price:12,img:BASE+"grok_1793873671190.jpg"},
-  {id:8,name:"Sticker 8",price:12,img:BASE+"grok_1793873671687.jpg"},
-  {id:9,name:"Sticker 9",price:12,img:BASE+"grok_1793873675421.jpg"},
-  {id:10,name:"Sticker 10",price:12,img:BASE+"grok_1793873678612.jpg"},
-  {id:11,name:"Sticker 11",price:12,img:BASE+"grok_1793873682610.jpg"},
-  {id:12,name:"Sticker 12",price:12,img:BASE+"grok_1793873686205.jpg"},
-  {id:13,name:"Sticker 13",price:12,img:BASE+"grok_1793873690727.jpg"},
-  {id:14,name:"Sticker 14",price:12,img:BASE+"grok_1793873695295.jpg"},
-  {id:15,name:"Sticker 15",price:12,img:BASE+"grok_1793873698083.jpg"},
-  {id:16,name:"Sticker 16",price:12,img:BASE+"grok_1793873701177.jpg"},
-  {id:17,name:"Sticker 17",price:12,img:BASE+"grok_1793873703898.jpg"},
-  {id:18,name:"Sticker 18",price:12,img:BASE+"grok_1793873708158.jpg"},
-  {id:19,name:"Sticker 19",price:12,img:BASE+"grok_1793873712441.jpg"},
-  {id:20,name:"Sticker 20",price:12,img:BASE+"grok_1793873715206.jpg"}
+  {id:1, name:"Bitcoin", price:15, img: BASE + "grok_1793863248535.jpg"},
+  {id:2, name:"Pepe", price:12, img: BASE + "grok_1793863263231.jpg"},
+  {id:3, name:"Solana", price:12, img: BASE + "grok_1793863828992.png"},
+  {id:4, name:"Pepe 2", price:12, img: BASE + "grok_1793863836019.png"},
+  {id:5, name:"Sticker 5", price:12, img: BASE + "grok_1793863841233.png"},
+  {id:6, name:"Sticker 6", price:12, img: BASE + "grok_1793873660861.jpg"},
+  {id:7, name:"Sticker 7", price:12, img: BASE + "grok_1793873671190.jpg"},
+  {id:8, name:"Sticker 8", price:12, img: BASE + "grok_1793873671687.jpg"},
+  {id:9, name:"Sticker 9", price:12, img: BASE + "grok_1793873675421.jpg"},
+  {id:10, name:"Sticker 10", price:12, img: BASE + "grok_1793873678612.jpg"},
+  {id:11, name:"Sticker 11", price:12, img: BASE + "grok_1793873682610.jpg"},
+  {id:12, name:"Sticker 12", price:12, img: BASE + "grok_1793873686205.jpg"},
+  {id:13, name:"Sticker 13", price:12, img: BASE + "grok_1793873690727.jpg"},
+  {id:14, name:"Sticker 14", price:12, img: BASE + "grok_1793873695295.jpg"},
+  {id:15, name:"Sticker 15", price:12, img: BASE + "grok_1793873698083.jpg"},
+  {id:16, name:"Sticker 16", price:12, img: BASE + "grok_1793873701177.jpg"},
+  {id:17, name:"Sticker 17", price:12, img: BASE + "grok_1793873703898.jpg"},
+  {id:18, name:"Sticker 18", price:12, img: BASE + "grok_1793873708158.jpg"},
+  {id:19, name:"Sticker 19", price:12, img: BASE + "grok_1793873712441.jpg"},
+  {id:20, name:"Sticker 20", price:12, img: BASE + "grok_1793873715206.jpg"}
 ];
 
 let cart = [];
 let game = JSON.parse(localStorage.getItem("game") || '{"wood":0,"money":0,"workers":1,"power":1,"last":Date.now()}');
 
-function saveGame(){localStorage.setItem("game",JSON.stringify(game));}
-function updateGame(){
+function saveGame() { localStorage.setItem("game", JSON.stringify(game)); }
+function updateGame() {
   document.getElementById("wood").textContent = Math.floor(game.wood);
   document.getElementById("money").textContent = Math.floor(game.money);
   document.getElementById("workers").textContent = game.workers;
@@ -113,66 +113,70 @@ function updateGame(){
   document.getElementById("hire-cost").textContent = game.workers * 50;
   document.getElementById("upgrade-cost").textContent = Math.floor(game.power * 100);
 }
-function collect(){
-  const sec = (Date.now() - game.last)/1000;
+function collect() {
+  const sec = (Date.now() - game.last) / 1000;
   game.wood += game.workers * game.power * sec;
   game.money += game.workers * game.power * sec * 0.15;
   game.last = Date.now();
   saveGame(); updateGame();
 }
-function hire(){
+function hire() {
   const cost = game.workers * 50;
-  if(game.money >= cost){game.money -= cost; game.workers++; saveGame(); updateGame();}
+  if (game.money >= cost) { game.money -= cost; game.workers++; saveGame(); updateGame(); }
 }
-function upgrade(){
+function upgrade() {
   const cost = game.power * 100;
-  if(game.money >= cost){game.money -= cost; game.power += 0.5; saveGame(); updateGame();}
+  if (game.money >= cost) { game.money -= cost; game.power += 0.5; saveGame(); updateGame(); }
 }
 
-function renderProducts(){
-  const q = document.getElementById("search").value.toLowerCase();
+function renderProducts() {
+  const q = (document.getElementById("search").value || "").toLowerCase();
   const list = products.filter(p => p.name.toLowerCase().includes(q));
   const c = document.getElementById("products");
   c.innerHTML = "";
   list.forEach(p => {
-    c.innerHTML += `<div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-      <img src="${p.img}" class="w-full h-32 object-contain bg-slate-950">
+    const div = document.createElement("div");
+    div.className = "bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden";
+    div.innerHTML = `
+      <img src="\( {p.img}" class="w-full h-32 object-contain bg-slate-950" alt=" \){p.name}">
       <div class="p-3">
         <h3 class="font-bold text-sm">${p.name}</h3>
         <div class="flex justify-between items-center mt-2">
           <span class="text-amber-400 font-bold">${p.price} ⭐</span>
           <button onclick="addToCart(${p.id})" class="bg-purple-600 text-xs px-3 py-1 rounded-lg">+</button>
         </div>
-      </div>
-    </div>`;
+      </div>`;
+    c.appendChild(div);
   });
 }
 
-function addToCart(id){
+function addToCart(id) {
   const p = products.find(x => x.id === id);
+  if (!p) return;
   const item = cart.find(x => x.id === id);
-  if(item) item.qty++; else cart.push({...p, qty:1});
+  if (item) item.qty++;
+  else cart.push({ ...p, qty: 1 });
   updateCart();
 }
-function updateCart(){
-  document.getElementById("cart-count").textContent = cart.reduce((s,i)=>s+i.qty,0);
+function updateCart() {
+  document.getElementById("cart-count").textContent = cart.reduce((s, i) => s + i.qty, 0);
   const c = document.getElementById("cart-items");
   c.innerHTML = cart.map(i => `<div class="flex justify-between py-2 border-b border-slate-800">
-    <span>\( {i.name} × \){i.qty}</span><span>${i.price*i.qty} ⭐</span>
-  </div>`).join("");
-  document.getElementById("cart-total").textContent = cart.reduce((s,i)=>s+i.price*i.qty,0) + " ⭐";
+    <span>\( {i.name} × \){i.qty}</span><span>${i.price * i.qty} ⭐</span>
+  </div>`).join("") || "<p class='text-slate-400 text-sm text-center py-4'>Корзина пуста</p>";
+  document.getElementById("cart-total").textContent = cart.reduce((s, i) => s + i.price * i.qty, 0) + " ⭐";
 }
-function openCart(){updateCart(); document.getElementById("cart-modal").classList.remove("hidden");}
-function closeCart(){document.getElementById("cart-modal").classList.add("hidden");}
-function checkout(){alert("Оплата (Stars / TON) — добавим позже"); cart=[]; updateCart(); closeCart();}
+function openCart() { updateCart(); document.getElementById("cart-modal").classList.remove("hidden"); }
+function closeCart() { document.getElementById("cart-modal").classList.add("hidden"); }
+function checkout() { alert("Оплата будет добавлена позже"); cart = []; updateCart(); closeCart(); }
 
-function showShop(){
+function showShop() {
   document.getElementById("shop-section").classList.remove("hidden");
   document.getElementById("game-section").classList.add("hidden");
   document.getElementById("tab-shop").className = "flex-1 py-3 text-sm font-semibold tab-active";
   document.getElementById("tab-game").className = "flex-1 py-3 text-sm font-semibold text-slate-400";
 }
-function showGame(){
+function showGame() {
   document.getElementById("game-section").classList.remove("hidden");
   document.getElementById("shop-section").classList.add("hidden");
   document.getElementById("tab-game").className = "flex-1 py-3 text-sm font-semibold tab-active";
@@ -180,7 +184,7 @@ function showGame(){
   collect();
 }
 
-document.getElementById("search").oninput = renderProducts;
+document.getElementById("search").addEventListener("input", renderProducts);
 setInterval(collect, 5000);
 renderProducts();
 updateGame();
