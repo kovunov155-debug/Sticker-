@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Stick Chop — Магазин стикеров и Игра</title>
+  <title>Crypto Spin & Stick Chop — Колесо Крипто-Фортуны</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -17,9 +18,9 @@
       -webkit-tap-highlight-color: transparent;
     }
     .tab-active {
-      background: linear-gradient(135deg, #9333ea, #db2777);
+      background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
       color: #ffffff !important;
-      box-shadow: 0 4px 12px rgba(219, 39, 119, 0.3);
+      box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
     }
     .modal-backdrop {
       position: fixed;
@@ -48,224 +49,199 @@
       from { transform: translateY(40px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-    @keyframes lumberjack-chop-left {
-      0%, 100% { transform: rotate(0deg) scale(1); }
-      50% { transform: rotate(-25deg) scale(1.15) translateX(4px); }
+    @keyframes wheel-led-blink {
+      0%, 100% { opacity: 0.35; filter: drop-shadow(0 0 2px #f59e0b); }
+      50% { opacity: 1; filter: drop-shadow(0 0 8px #fbbf24); }
     }
-    @keyframes lumberjack-chop-right {
-      0%, 100% { transform: rotate(0deg) scale(1); }
-      50% { transform: rotate(25deg) scale(1.15) translateX(-4px); }
-    }
-    .anim-chop-left {
-      animation: lumberjack-chop-left 0.75s ease-in-out infinite;
-      transform-origin: bottom center;
-    }
-    .anim-chop-right {
-      animation: lumberjack-chop-right 0.85s ease-in-out infinite;
-      transform-origin: bottom center;
-    }
-    .tree-shake {
-      animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both;
-    }
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-1px, 0, 0) scale(1.03); }
-      20%, 80% { transform: translate3d(2px, 0, 0) scale(0.98); }
-      30%, 50%, 70% { transform: translate3d(-2px, 0, 0) scale(1.03); }
-      40%, 60% { transform: translate3d(2px, 0, 0) scale(1); }
-    }
-    .floating-num {
-      animation: floatUp 0.8s ease-out forwards;
-      pointer-events: none;
-    }
-    @keyframes floatUp {
-      0% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0; transform: translateY(-40px) scale(1.25); }
+    .anim-led {
+      animation: wheel-led-blink 1.2s ease-in-out infinite;
     }
     .hidden { display: none !important; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
 
-  <!-- Шапка приложения -->
-  <header class="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-4 flex justify-between items-center shadow-lg">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xl shadow-md">🪓</div>
+  <!-- Шапка -->
+  <header class="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-3.5 flex justify-between items-center shadow-lg">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-pink-500 to-purple-600 flex items-center justify-center text-xl shadow-lg">
+        🎰
+      </div>
       <div>
-        <h1 class="font-black text-lg bg-gradient-to-r from-purple-400 via-pink-400 to-amber-300 bg-clip-text text-transparent leading-tight">STICK CHOP</h1>
-        <p class="text-[11px] text-slate-400">Магазин стикеров + Игра</p>
+        <h1 class="font-black text-base bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 bg-clip-text text-transparent leading-none">
+          CRYPTO SPIN
+        </h1>
+        <p class="text-[10px] text-slate-400 font-medium">Крипто-колесо фортуны + Стикеры</p>
       </div>
     </div>
-    <button onclick="openCart()" class="relative bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl px-3.5 py-2 text-sm font-semibold transition flex items-center gap-2 shadow-md">
-      <span>🛒</span>
-      <span id="cart-count-badge" class="bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow">0</span>
-    </button>
+
+    <div class="flex items-center gap-2">
+      <button onclick="openWithdrawModal()" class="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95 transition shadow">
+        <span>💳 Вывод</span>
+      </button>
+
+      <button onclick="openCart()" class="relative bg-slate-800 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold transition flex items-center gap-1.5 shadow">
+        <span>🛒</span>
+        <span id="cart-badge-count" class="bg-pink-500 text-white text-[11px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+      </button>
+    </div>
   </header>
 
-  <!-- Навигация: вкладки -->
-  <div class="flex border-b border-slate-800 bg-slate-900/60 sticky top-[73px] z-30 backdrop-blur-md">
-    <button id="tab-btn-shop" class="flex-1 py-3 text-sm font-bold tab-active transition flex items-center justify-center gap-2" onclick="showTab('shop')">
-      <span>🛍️</span>
-      <span>Магазин</span>
-      <span class="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-md">20</span>
+  <!-- Вкладки -->
+  <div class="flex border-b border-slate-800 bg-slate-900/70 sticky top-[63px] z-30 backdrop-blur-md">
+    <button id="tab-btn-spin" class="flex-1 py-3 text-xs font-black tab-active transition flex items-center justify-center gap-1.5" onclick="showTab('spin')">
+      <span>🎰</span>
+      <span>Крипто-Спин</span>
+      <span id="tab-spins-count" class="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.5 rounded-full font-black">5</span>
     </button>
-    <button id="tab-btn-game" class="flex-1 py-3 text-sm font-bold text-slate-400 hover:text-white transition flex items-center justify-center gap-2" onclick="showTab('game')">
-      <span>🪓</span>
-      <span>Игра Stick Chop</span>
+    <button id="tab-btn-shop" class="flex-1 py-3 text-xs font-black text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5" onclick="showTab('shop')">
+      <span>🛍️</span>
+      <span>Магазин стикеров</span>
+      <span class="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-md">20</span>
     </button>
   </div>
 
-  <!-- Вкладка 1: Магазин -->
-  <main id="shop-section" class="max-w-md mx-auto p-4 pb-28 w-full flex-1 space-y-4">
-    <!-- Поиск -->
+  <!-- Вкладка 1: Крипто-Спин -->
+  <main id="spin-section" class="max-w-md mx-auto p-4 pb-24 w-full flex-1 space-y-4">
+    <!-- Live лента -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl px-3 py-2 flex items-center justify-between text-xs shadow-inner">
+      <div class="flex items-center gap-1.5 text-slate-400 text-[11px]">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="font-semibold text-slate-300">Live выигрыш:</span>
+      </div>
+      <div id="live-feed-ticker" class="flex items-center gap-1 font-bold truncate">
+        <span class="text-slate-300">@alex_crypto</span>
+        <span class="text-blue-400">💎 2.5 TON</span>
+      </div>
+    </div>
+
+    <!-- Баланс криптовалют -->
+    <div class="grid grid-cols-4 gap-2 text-center">
+      <div class="bg-gradient-to-b from-slate-900 to-blue-950/40 border border-blue-500/30 rounded-2xl p-2 shadow-md">
+        <div class="text-base">💎</div>
+        <div id="bal-ton" class="text-xs font-black text-blue-400 font-mono mt-0.5">0.00</div>
+        <div class="text-[9px] text-slate-400 font-bold uppercase">TON</div>
+      </div>
+      <div class="bg-gradient-to-b from-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-2xl p-2 shadow-md">
+        <div class="text-base">💵</div>
+        <div id="bal-usdt" class="text-xs font-black text-emerald-400 font-mono mt-0.5">0.00</div>
+        <div class="text-[9px] text-slate-400 font-bold uppercase">USDT</div>
+      </div>
+      <div class="bg-gradient-to-b from-slate-900 to-amber-950/40 border border-amber-500/30 rounded-2xl p-2 shadow-md">
+        <div class="text-base">⚡</div>
+        <div id="bal-not" class="text-xs font-black text-amber-400 font-mono mt-0.5">0</div>
+        <div class="text-[9px] text-slate-400 font-bold uppercase">NOT</div>
+      </div>
+      <div class="bg-gradient-to-b from-slate-900 to-orange-950/40 border border-orange-500/30 rounded-2xl p-2 shadow-md">
+        <div class="text-base">🐶</div>
+        <div id="bal-dogs" class="text-xs font-black text-orange-400 font-mono mt-0.5">0</div>
+        <div class="text-[9px] text-slate-400 font-bold uppercase">DOGS</div>
+      </div>
+    </div>
+
+    <!-- КОЛЕСО КРИПТО-ФОРТУНЫ -->
+    <div class="bg-gradient-to-b from-slate-900 via-purple-950/30 to-slate-950 border border-purple-500/30 rounded-3xl p-4 shadow-2xl relative flex flex-col items-center">
+      <div class="z-30 -mb-4 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] pointer-events-none">
+        <div class="w-8 h-8 bg-gradient-to-b from-amber-300 to-amber-500 rotate-45 rounded-sm border-2 border-white shadow-xl flex items-center justify-center">
+          <div class="w-3 h-3 bg-pink-600 rounded-full"></div>
+        </div>
+      </div>
+
+      <div class="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center my-2">
+        <div id="led-container" class="absolute inset-0 rounded-full border-4 border-amber-400/80 shadow-[0_0_25px_rgba(245,158,11,0.4)] pointer-events-none z-20 flex items-center justify-center"></div>
+
+        <div id="wheel-rotor" class="w-full h-full rounded-full overflow-hidden shadow-inner" style="transform: rotate(0deg);">
+          <svg viewBox="0 0 400 400" class="w-full h-full select-none" id="wheel-svg"></svg>
+        </div>
+
+        <button id="center-spin-btn" onclick="triggerSpinAction()" class="absolute z-20 w-20 h-20 rounded-full bg-gradient-to-b from-amber-300 via-pink-500 to-purple-700 p-1 shadow-[0_0_20px_rgba(236,72,153,0.6)] active:scale-95 transition transform">
+          <div class="w-full h-full rounded-full bg-slate-950 flex flex-col items-center justify-center border-2 border-amber-300/60">
+            <span id="center-spin-icon" class="text-xl">🎰</span>
+            <span id="center-spin-text" class="text-[10px] font-black text-amber-300 uppercase tracking-wider leading-none mt-0.5">SPIN</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- Множитель выигрыша -->
+      <div class="w-full flex items-center justify-between mt-3 pt-3 border-t border-slate-800 text-xs">
+        <span class="text-slate-400 font-semibold text-[11px]">Множитель выигрыша:</span>
+        <div class="flex gap-1.5">
+          <button onclick="setMultiplier(1)" id="btn-mult-1" class="px-3 py-1 rounded-xl font-black text-xs bg-gradient-to-r from-amber-400 to-pink-500 text-slate-950 shadow-md">x1</button>
+          <button onclick="setMultiplier(2)" id="btn-mult-2" class="px-3 py-1 rounded-xl font-black text-xs bg-slate-800 text-slate-300">x2</button>
+          <button onclick="setMultiplier(5)" id="btn-mult-5" class="px-3 py-1 rounded-xl font-black text-xs bg-slate-800 text-slate-300">x5</button>
+        </div>
+      </div>
+
+      <button id="main-spin-btn" onclick="triggerSpinAction()" class="w-full mt-3.5 py-4 rounded-2xl font-black text-base shadow-2xl flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-pink-500 to-purple-600 hover:from-amber-300 hover:to-purple-500 text-slate-950 shadow-[0_8px_25px_rgba(236,72,153,0.4)] active:scale-98 transition transform">
+        <span>🔥</span>
+        <span id="main-spin-label">КРУТИТЬ (1 спин)</span>
+        <span id="main-spins-left" class="text-xs bg-black/20 px-2 py-0.5 rounded-full text-slate-900">Осталось: 5</span>
+      </button>
+    </div>
+
+    <!-- Таймер и рефералы -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between shadow-md">
+        <div>
+          <div class="flex items-center gap-1.5 text-amber-300 font-bold text-xs">
+            <span>🎁</span>
+            <span>Таймер +1 Спин</span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">Каждые 2 часа бесплатно!</div>
+        </div>
+        <button id="timer-claim-btn" onclick="claimFreeSpinTimer()" class="mt-2.5 w-full bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-mono font-bold py-1.5 rounded-xl border border-amber-400/20 active:scale-95 transition">
+          02:00:00
+        </button>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between shadow-md">
+        <div>
+          <div class="flex items-center gap-1.5 text-purple-300 font-bold text-xs">
+            <span>👥</span>
+            <span>+3 Спина за друга</span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">
+            Приглашено: <b id="referral-val" class="text-amber-300">0</b> чел.
+          </div>
+        </div>
+        <button onclick="inviteFriend()" class="mt-2.5 w-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-1.5 rounded-xl shadow active:scale-95 transition">
+          Позвать друга ↗
+        </button>
+      </div>
+    </div>
+
+    <!-- Покупка спинов -->
+    <div class="bg-gradient-to-r from-amber-500/15 via-pink-500/15 to-purple-500/15 border border-amber-500/30 rounded-2xl p-3.5 flex justify-between items-center shadow-lg">
+      <div>
+        <h3 class="font-black text-xs text-amber-300 flex items-center gap-1.5">
+          <span>💎 ПАКЕТЫ СПИНОВ</span>
+          <span class="bg-pink-500/20 text-pink-300 text-[9px] px-1.5 py-0.2 rounded-full border border-pink-500/30">ОТ 0.5 USDT</span>
+        </h3>
+        <p class="text-[10px] text-slate-400">Оплата через Stars или TON / USDT</p>
+      </div>
+      <button onclick="openBuySpinsModal()" class="bg-gradient-to-r from-amber-400 to-pink-500 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl shadow active:scale-95 transition">
+        Купить спины 🔥
+      </button>
+    </div>
+  </main>
+
+  <!-- Вкладка 2: Магазин стикеров -->
+  <main id="shop-section" class="max-w-md mx-auto p-4 pb-28 w-full flex-1 space-y-4 hidden">
     <div class="relative">
       <input id="search-input" type="search" placeholder="Поиск стикеров..." oninput="handleSearch(this.value)"
         class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-purple-500 transition shadow-inner">
     </div>
 
-    <!-- Заголовок каталога с обновленными ценами -->
     <div class="flex justify-between items-center text-xs">
       <span id="catalog-count-label" class="font-semibold text-slate-300">Каталог стикеров (20)</span>
       <span class="text-amber-400 font-semibold bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-400/20">55–120 ⭐</span>
     </div>
 
-    <!-- Сетка стикеров -->
     <div id="products-grid" class="grid grid-cols-2 gap-3"></div>
   </main>
 
-  <!-- Вкладка 2: Игра Stick Chop -->
-  <main id="game-section" class="max-w-md mx-auto p-4 pb-28 w-full flex-1 space-y-3.5 hidden">
-    <!-- Бонусный баннер -->
-    <div id="bonus-banner" class="hidden bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 border border-amber-400/60 p-2.5 rounded-2xl text-center text-xs font-bold text-amber-200 shadow-lg"></div>
-
-    <!-- Поляна лесорубов с деревом -->
-    <div class="bg-gradient-to-b from-slate-900 via-emerald-950/40 to-slate-950 border border-emerald-900/40 rounded-3xl p-4 text-center shadow-2xl relative overflow-hidden">
-      <div id="floating-container" class="absolute inset-0 pointer-events-none flex items-center justify-center z-30"></div>
-
-      <div class="flex justify-between items-center mb-3 text-xs border-b border-emerald-800/40 pb-2">
-        <div class="flex items-center gap-1.5 font-bold text-emerald-400">
-          <span id="tree-icon">🌲</span>
-          <span id="tree-name">Северная Ель</span>
-        </div>
-        <div class="bg-emerald-900/50 text-emerald-300 px-2.5 py-0.5 rounded-full font-bold text-[10px] border border-emerald-700/50">
-          Срублено: <span id="trees-cut-count">0</span>
-        </div>
-      </div>
-
-      <!-- Зона рубки: Лесорубы слева, Дерево по центру, Лесорубы справа -->
-      <div class="relative py-4 flex items-center justify-center gap-4">
-        <div id="lumberjacks-left" class="flex flex-col gap-2 items-center justify-center w-14"></div>
-
-        <button id="tree-btn" onclick="chopTree()" class="relative group active:scale-95 transition transform focus:outline-none">
-          <div id="tree-visual" class="text-7xl drop-shadow-[0_10px_20px_rgba(16,185,129,0.3)] transition transform duration-150">🌲</div>
-          <div class="text-[11px] font-bold text-amber-300 bg-black/60 px-2 py-0.5 rounded-full mt-1 border border-amber-400/30">
-            Кликни: Рубить!
-          </div>
-        </button>
-
-        <div id="lumberjacks-right" class="flex flex-col gap-2 items-center justify-center w-14"></div>
-      </div>
-
-      <!-- Шкала прочности дерева -->
-      <div class="w-full bg-slate-950 rounded-full h-3 border border-emerald-900/60 overflow-hidden mt-3 relative">
-        <div id="tree-hp-bar" class="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-pink-500 transition-all duration-200" style="width: 100%"></div>
-      </div>
-      <div class="flex justify-between text-[10px] text-slate-400 font-bold mt-1 px-1">
-        <span>Прочность дерева:</span>
-        <span id="tree-hp-text">10 / 10 HP</span>
-      </div>
-    </div>
-
-    <!-- Ресурсы: Дерево и Деньги -->
-    <div class="grid grid-cols-2 gap-3">
-      <div class="bg-slate-900/90 border border-amber-900/40 rounded-2xl p-3 text-center shadow-lg">
-        <div class="text-2xl">🪵</div>
-        <div id="wood-val" class="text-xl font-black text-amber-400 font-mono mt-0.5">0</div>
-        <div class="text-[11px] text-slate-400 font-medium">Дерево на складе</div>
-        <div class="flex justify-center gap-1.5 mt-2 pt-2 border-t border-slate-800">
-          <button onclick="sellWood(10)" class="bg-amber-600/30 hover:bg-amber-600/50 active:scale-95 border border-amber-500/40 text-[10px] font-bold px-2 py-1 rounded-lg text-amber-300">
-            10 🪵
-          </button>
-          <button onclick="sellWood(50)" class="bg-amber-600/30 hover:bg-amber-600/50 active:scale-95 border border-amber-500/40 text-[10px] font-bold px-2 py-1 rounded-lg text-amber-300">
-            50 🪵
-          </button>
-          <button onclick="sellAllWood()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-[10px] font-black px-2 py-1 rounded-lg">
-            Всё
-          </button>
-        </div>
-      </div>
-
-      <div class="bg-slate-900/90 border border-emerald-900/40 rounded-2xl p-3 text-center shadow-lg">
-        <div class="text-2xl">💰</div>
-        <div id="money-val" class="text-xl font-black text-emerald-400 font-mono mt-0.5">0</div>
-        <div class="text-[11px] text-slate-400 font-medium">Баланс монет</div>
-        <div class="text-[10px] text-emerald-400 font-bold mt-2 pt-2 border-t border-slate-800 flex items-center justify-center gap-1">
-          <span>Курс:</span> <span>1 🪵 = 1 💰</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Характеристики отряда -->
-    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 text-xs flex justify-around items-center">
-      <div class="text-center">
-        <div class="text-slate-400 text-[10px]">Бригада</div>
-        <div class="font-bold text-purple-300 text-sm">👷 <span id="workers-count">1</span> чел.</div>
-      </div>
-      <div class="h-6 w-px bg-slate-800"></div>
-      <div class="text-center">
-        <div class="text-slate-400 text-[10px]">Сила топора</div>
-        <div class="font-bold text-pink-300 text-sm">⚡ <span id="power-val">1.0</span></div>
-      </div>
-      <div class="h-6 w-px bg-slate-800"></div>
-      <div class="text-center">
-        <div class="text-slate-400 text-[10px]">Пассивный сбор</div>
-        <div class="font-bold text-amber-400 text-sm"><span id="idle-rate">0.4</span>/сек</div>
-      </div>
-    </div>
-
-    <!-- Кнопки найма и прокачки -->
-    <div class="space-y-2">
-      <button onclick="hireWorker()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl flex justify-between items-center shadow-lg transition">
-        <span class="flex items-center gap-2"><span>👷</span> <span>Нанять лесоруба</span></span>
-        <span class="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-amber-300"><span id="hire-cost">30</span> 💰</span>
-      </button>
-
-      <button onclick="upgradePower()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl flex justify-between items-center shadow-lg transition">
-        <span class="flex items-center gap-2"><span>🪓</span> <span>Заточить топоры</span></span>
-        <span class="bg-black/30 px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-amber-300"><span id="upgrade-cost">50</span> 💰</span>
-      </button>
-    </div>
-
-    <!-- VIP Магазин бустеров и Рефералы -->
-    <div class="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-pink-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-3">
-      <div class="flex justify-between items-center">
-        <div>
-          <h3 class="font-black text-xs text-amber-300 flex items-center gap-1.5">
-            <span>💎 VIP МАГАЗИН БУСТЕРОВ</span>
-          </h3>
-          <p class="text-[10px] text-slate-400">Оплата в USDT (TON) или Telegram Stars</p>
-        </div>
-        <button onclick="openVipShopModal()" class="bg-gradient-to-r from-amber-500 to-pink-500 hover:from-amber-400 hover:to-pink-400 active:scale-95 text-slate-950 font-black text-xs px-3 py-1.5 rounded-xl shadow">
-          Открыть VIP 🔥
-        </button>
-      </div>
-
-      <div class="border-t border-slate-800 pt-2.5 flex justify-between items-center">
-        <div>
-          <div class="text-xs font-bold text-white flex items-center gap-1">
-            <span>👥 Пригласи друга</span>
-            <span class="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">+150🪵 +50💰</span>
-          </div>
-          <div class="text-[10px] text-slate-400">Приглашено: <b id="referral-count" class="text-amber-300">0</b> чел.</div>
-        </div>
-        <button onclick="inviteFriend()" class="bg-purple-600 hover:bg-purple-500 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1">
-          <span>Позвать</span> <span>↗</span>
-        </button>
-      </div>
-    </div>
-  </main>
-
-  <!-- Плавающая плашка корзины внизу экрана -->
-  <div id="floating-cart-bar" class="fixed bottom-0 left-0 right-0 p-3 bg-slate-950/90 backdrop-blur-md border-t border-slate-800 z-30">
+  <!-- Плавающая плашка корзины в магазине -->
+  <div id="floating-cart-bar" class="fixed bottom-0 left-0 right-0 p-3 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 z-30 hidden">
     <div class="max-w-md mx-auto">
       <button onclick="openCart()" class="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-bold p-3.5 rounded-2xl flex justify-between items-center shadow-2xl active:scale-98 transition">
         <div class="flex items-center gap-2">
@@ -279,79 +255,102 @@
     </div>
   </div>
 
-  <!-- Модальное окно Корзины -->
+  <!-- Модальное окно ВЫИГРЫША -->
+  <div id="win-modal" class="modal-backdrop hidden">
+    <div class="modal-content text-center border-2 border-amber-400/80 shadow-[0_0_50px_rgba(245,158,11,0.5)]">
+      <div id="win-modal-icon" class="text-6xl mb-2 animate-bounce">🎰</div>
+      <div id="win-modal-subtitle" class="text-xs font-black text-amber-400 uppercase tracking-widest">ПОЗДРАВЛЯЕМ! ВЫ ВЫИГРАЛИ!</div>
+      <h2 id="win-modal-title" class="text-2xl font-black text-white mt-1">2.5 TON</h2>
+      <p id="win-modal-desc" class="text-xs text-slate-400 mt-1">Награда успешно зачислена на ваш игровой баланс.</p>
+      <button onclick="closeWinModal()" class="mt-5 w-full bg-gradient-to-r from-amber-400 via-pink-500 to-purple-600 text-slate-950 font-black py-3.5 rounded-2xl shadow-xl active:scale-95 transition">
+        ЗАБРАТЬ ВЫИГРЫШ 💰
+      </button>
+    </div>
+  </div>
+
+  <!-- Модальное окно ПОКУПКИ СПИНОВ -->
+  <div id="buy-modal" class="modal-backdrop hidden">
+    <div class="modal-content space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🎰</span>
+          <h2 class="font-black text-base text-white">Пакеты Спинов</h2>
+        </div>
+        <button onclick="closeBuySpinsModal()" class="text-2xl text-slate-400 hover:text-white leading-none">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-400">Пополняйте спины через Telegram Stars или USDT на TON кошелек:</p>
+      <div id="buy-packages-list" class="space-y-2.5"></div>
+
+      <div class="border-t border-slate-800 pt-3 text-[11px] space-y-2">
+        <div class="text-slate-400">Прямой перевод USDT (TON сеть):</div>
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 font-mono text-[10px] text-slate-300 break-all select-all flex justify-between items-center gap-2">
+          <span>UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd</span>
+          <button onclick="copyWalletAddress()" class="bg-purple-600 px-2 py-1 rounded text-white text-[10px] font-bold">Копировать</button>
+        </div>
+        <button onclick="openTonkeeperPay()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs shadow transition active:scale-95">
+          <span>Оплатить в Tonkeeper</span> <span>↗</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно ВЫВОДА СРЕДСТВ -->
+  <div id="withdraw-modal" class="modal-backdrop hidden">
+    <div class="modal-content space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">💳</span>
+          <h2 class="font-black text-base text-white">Вывод криптовалюты</h2>
+        </div>
+        <button onclick="closeWithdrawModal()" class="text-2xl text-slate-400 hover:text-white leading-none">&times;</button>
+      </div>
+
+      <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3 text-xs space-y-1">
+        <div class="text-emerald-300 font-bold">Доступно к выводу:</div>
+        <div class="flex justify-between font-mono text-sm font-black text-white">
+          <span id="withdraw-ton-avail">💎 0.00 TON</span>
+          <span id="withdraw-usdt-avail">💵 0.00 USDT</span>
+        </div>
+        <div class="text-[10px] text-slate-400 pt-1">
+          Минимальный порог: 0.5 TON или 1.0 USDT. Комиссия сети: 0%.
+        </div>
+      </div>
+
+      <form onsubmit="handleWithdrawalSubmit(event)" class="space-y-3">
+        <div>
+          <label class="text-slate-400 text-xs block mb-1">Ваш адрес TON кошелька:</label>
+          <input id="withdraw-address-input" type="text" required placeholder="UQ... или EQ... (Tonkeeper / Wallet)"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition font-mono">
+        </div>
+
+        <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black py-3 rounded-xl shadow-lg active:scale-95 transition">
+          Запросить выплату ✓
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно КОРЗИНЫ -->
   <div id="cart-modal" class="modal-backdrop hidden">
-    <div class="modal-content">
-      <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800">
+    <div class="modal-content space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-800">
         <div class="flex items-center gap-2">
           <span class="text-xl">🛒</span>
           <h2 class="font-black text-base text-white">Ваша корзина</h2>
         </div>
-        <button onclick="closeCart()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeCart()" class="text-2xl text-slate-400 hover:text-white leading-none">&times;</button>
       </div>
 
-      <div id="cart-items-list" class="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1"></div>
+      <div id="cart-items-list" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1"></div>
 
-      <div class="border-t border-slate-800 pt-3.5 mt-4">
-        <div class="flex justify-between items-center text-sm font-bold mb-3">
+      <div class="border-t border-slate-800 pt-3 space-y-2">
+        <div class="flex justify-between items-center text-sm font-bold">
           <span class="text-slate-300">Итого к оплате:</span>
-          <span class="text-amber-400 font-mono text-lg font-black"><span id="cart-modal-total">0</span> ⭐</span>
+          <span id="cart-modal-total" class="text-amber-400 font-mono text-lg font-black">0 ⭐</span>
         </div>
-        <button onclick="checkoutCart()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-95 transition">
+        <button onclick="checkoutCartStars()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-95 transition">
           Оплатить через Stars ⭐
-        </button>
-        <button onclick="openDirectPayModal('Оплата заказа стикеров', getCartTotalStars())" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold py-2.5 rounded-xl border border-slate-700 active:scale-95 transition">
-          Или оплатить в USDT (TON)
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Модальное окно VIP Магазина бустеров -->
-  <div id="vip-modal" class="modal-backdrop hidden">
-    <div class="modal-content">
-      <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">💎</span>
-          <h2 class="font-black text-base text-amber-300">VIP Бустеры</h2>
-        </div>
-        <button onclick="closeVipShopModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
-      </div>
-
-      <div id="vip-items-list" class="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1"></div>
-    </div>
-  </div>
-
-  <!-- Модальное окно прямой оплаты на кошелек USDT (TON) -->
-  <div id="pay-modal" class="modal-backdrop hidden">
-    <div class="modal-content">
-      <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">💳</span>
-          <h2 class="font-black text-base text-white" id="pay-modal-title">Оплата</h2>
-        </div>
-        <button onclick="closePayModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
-      </div>
-
-      <div class="space-y-3 text-xs">
-        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-200">
-          Прямой перевод на официальный кошелек USDT (TON). После отправки транзакции нажмите кнопку активации!
-        </div>
-
-        <div>
-          <span class="text-slate-400 block mb-1">Официальный адрес кошелька:</span>
-          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-300 break-all select-all flex justify-between items-center gap-2">
-            <span id="wallet-text">UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd</span>
-            <button onclick="copyWallet()" class="bg-purple-600 px-2 py-1 rounded text-white text-[10px] font-bold">Копировать</button>
-          </div>
-        </div>
-
-        <button onclick="openTonkeeper()" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95 transition">
-          <span>Открыть в Tonkeeper</span> <span>↗</span>
-        </button>
-
-        <button id="confirm-pay-btn" onclick="confirmPaymentSuccess()" class="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition">
-          Я оплатил (Активировать) ✓
         </button>
       </div>
     </div>
@@ -377,14 +376,5 @@
     }
 
     const USDT_WALLET = "UQAiEqXWyX1j-cgeyksUGvZC5T2Fk2YkV1mxCEDH08wuafd";
-    const TONKEEPER_PAY_URL = "https://app.tonkeeper.com/transfer/" + USDT_WALLET;
-    const BASE_IMG_URL = "https://kovunov155-debug.github.io/Stickerchop./";
-
-    // 20 Стикерпаков с поднятыми ценами 55–120 ⭐
-    const PRODUCTS = [
-      { id: 1, name: "Bitcoin", price: 120, img: BASE_IMG_URL + "grok_1793863248535.jpg", emoji: "₿", rarity: "SECRET" },
-      { id: 2, name: "Pepe", price: 80, img: BASE_IMG_URL + "grok_1793863263231.jpg", emoji: "🐸", rarity: "ULTRA RARE" },
-      { id: 3, name: "Solana", price: 95, img: BASE_IMG_URL + "grok_1793863828992.png", emoji: "☀️", rarity: "HOLO RARE" },
-      { id: 4, name: "Pepe 2", price: 75, img: BASE_IMG_URL + "grok_1793863836019.png", emoji: "🐸", rarity: "HOLO RARE" },
-      { id: 5, name: "Sticker 5", price: 60, img: BASE_IMG_URL + "grok_1793863841233.png", emoji: "🦫", rarity: "RARE" },
-      { id: 6, name: "Sticker 6", price: 70, img: BASE_IMG_URL + "grok_1793873660861.jpg", emoji: "🥷", rarity: "RARE"
+    const TONKEEPER_URL = "https://app.tonkeeper.com/transfer/" + USDT_WALLET;
+    const BASE_IMG_URL = "https://kovunov155-debug.github.io/Stickercho
