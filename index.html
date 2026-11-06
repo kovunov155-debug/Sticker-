@@ -12,8 +12,6 @@ body{margin:0;background:#020617;color:#fff;font-family:Arial,sans-serif}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:flex-end;justify-content:center;padding:12px;z-index:50}
 .modal-box{width:100%;max-width:440px;max-height:85vh;overflow:auto;background:#0f172a;border:1px solid #334155;border-radius:24px;padding:18px}
 .hidden{display:none!important}
-.pulse{animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 </style>
 </head>
 <body>
@@ -33,23 +31,23 @@ body{margin:0;background:#020617;color:#fff;font-family:Arial,sans-serif}
 
 <div class="flex border-b border-slate-800">
   <button id="tab-shop" class="flex-1 py-3 text-sm font-semibold tab-active" onclick="showShop()">🛍️ Магазин</button>
-  <button id="tab-game" class="flex-1 py-3 text-sm font-semibold text-slate-400" onclick="showGame()">🪓 Игра</button>
+  <button id="tab-game" class="flex-1 py-3 text-sm font-semibold text-slate-400" onclick="showGame()">🪓 Игра Stick Chop</button>
 </div>
 
 <main id="shop-section" class="max-w-md mx-auto p-4 pb-28">
   <input id="search" type="search" placeholder="Поиск стикеров..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm mb-4 outline-none">
   <div class="flex justify-between items-center mb-3">
-    <h2 class="font-bold text-sm">Каталог стикеров</h2>
-    <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-1 rounded-lg">12–15 ⭐</span>
+    <h2 class="font-bold text-sm">Каталог стикеров (20)</h2>
+    <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-1 rounded-lg">12-15 ⭐</span>
   </div>
   <div id="products" class="grid grid-cols-2 gap-3"></div>
 </main>
 
 <main id="game-section" class="max-w-md mx-auto p-4 pb-28 hidden">
   <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center mb-4">
-    <div class="text-6xl mb-2">🪓</div>
+    <div class="text-6xl mb-3">🪓</div>
     <h2 class="text-xl font-bold">Stick Chop</h2>
-    <p class="text-sm text-slate-400">Рубят дерево даже когда ты оффлайн</p>
+    <p class="text-sm text-slate-400 mt-1">Рабочие рубят дерево даже когда ты оффлайн</p>
   </div>
 
   <div class="grid grid-cols-2 gap-3 mb-4">
@@ -65,206 +63,20 @@ body{margin:0;background:#020617;color:#fff;font-family:Arial,sans-serif}
     </div>
   </div>
 
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4 text-sm">
-    <div class="flex justify-between mb-1">
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4">
+    <div class="flex justify-between text-sm mb-2">
       <span>👷 Рабочих: <b id="workers">1</b></span>
       <span>⚡ Сила: <b id="power">1.0</b></span>
     </div>
     <div class="text-xs text-slate-400">Производство: <span id="prod">1.0</span> дерева/сек</div>
-    <div id="offline-info" class="text-xs text-amber-400 mt-2 hidden"></div>
   </div>
 
-  <div class="space-y-2">
-    <button onclick="hire()" class="w-full bg-purple-600 py-3 rounded-xl font-bold text-sm transition active:scale-95">
-      Нанять рабочего (<span id="hire-cost">50</span> 💰)
-    </button>
-    <button onclick="upgradePower()" class="w-full bg-pink-600 py-3 rounded-xl font-bold text-sm transition active:scale-95">
-      Улучшить силу (<span id="power-cost">100</span> 💰)
-    </button>
-    <button onclick="buyAxe()" class="w-full bg-amber-600 py-3 rounded-xl font-bold text-sm transition active:scale-95">
-      Лучший топор (<span id="axe-cost">250</span> 💰)
-    </button>
-    <button onclick="collectOffline()" class="w-full bg-slate-700 py-3 rounded-xl font-bold text-sm transition active:scale-95">
-      Собрать оффлайн
-    </button>
-  </div>
+  <button onclick="hire()" class="w-full bg-purple-600 hover:bg-purple-500 py-3.5 rounded-xl font-bold mb-3 transition active:scale-95">
+    Нанять рабочего (<span id="hire-cost">50</span> 💰)
+  </button>
+  <button onclick="upgrade()" class="w-full bg-pink-600 hover:bg-pink-500 py-3.5 rounded-xl font-bold transition active:scale-95">
+    Улучшить силу (<span id="upgrade-cost">100</span> 💰)
+  </button>
 
   <div class="text-center text-xs text-slate-500 mt-4">
-    Уровень: <span id="level">1</span> • Собрано дерева: <span id="total-wood">0</span>
-  </div>
-</main>
-
-<div id="cart-modal" class="modal hidden">
-  <div class="modal-box">
-    <div class="flex justify-between mb-4"><h2 class="font-bold">Корзина</h2><button onclick="closeCart()" class="text-2xl">×</button></div>
-    <div id="cart-items"></div>
-    <div class="border-t border-slate-700 pt-4 mt-4">
-      <div class="flex justify-between font-bold mb-3">Итого: <span id="cart-total" class="text-amber-400">0 ⭐</span></div>
-      <button onclick="checkout()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-3 font-bold">Оплатить</button>
-    </div>
-  </div>
-</div>
-
-<script>
-const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
-
-const BASE = "https://kovunov155-debug.github.io/Stickerchop./";
-const products = [
-  {id:1, name:"Bitcoin", price:15, img: BASE+"grok_1793863248535.jpg"},
-  {id:2, name:"Pepe", price:12, img: BASE+"grok_1793863263231.jpg"},
-  {id:3, name:"Solana", price:12, img: BASE+"grok_1793863828992.png"},
-  {id:4, name:"Pepe 2", price:12, img: BASE+"grok_1793863836019.png"},
-  {id:5, name:"Sticker 5", price:12, img: BASE+"grok_1793863841233.png"},
-  {id:6, name:"Sticker 6", price:12, img: BASE+"grok_1793873660861.jpg"},
-  {id:7, name:"Sticker 7", price:12, img: BASE+"grok_1793873671190.jpg"},
-  {id:8, name:"Sticker 8", price:12, img: BASE+"grok_1793873671687.jpg"},
-  {id:9, name:"Sticker 9", price:12, img: BASE+"grok_1793873675421.jpg"},
-  {id:10, name:"Sticker 10", price:12, img: BASE+"grok_1793873678612.jpg"},
-  {id:11, name:"Sticker 11", price:12, img: BASE+"grok_1793873682610.jpg"},
-  {id:12, name:"Sticker 12", price:12, img: BASE+"grok_1793873686205.jpg"},
-  {id:13, name:"Sticker 13", price:12, img: BASE+"grok_1793873690727.jpg"},
-  {id:14, name:"Sticker 14", price:12, img: BASE+"grok_1793873695295.jpg"},
-  {id:15, name:"Sticker 15", price:12, img: BASE+"grok_1793873698083.jpg"},
-  {id:16, name:"Sticker 16", price:12, img: BASE+"grok_1793873701177.jpg"},
-  {id:17, name:"Sticker 17", price:12, img: BASE+"grok_1793873703898.jpg"},
-  {id:18, name:"Sticker 18", price:12, img: BASE+"grok_1793873708158.jpg"},
-  {id:19, name:"Sticker 19", price:12, img: BASE+"grok_1793873712441.jpg"},
-  {id:20, name:"Sticker 20", price:12, img: BASE+"grok_1793873715206.jpg"}
-];
-
-let cart = [];
-let game = JSON.parse(localStorage.getItem("game_v2") || JSON.stringify({
-  wood: 0, money: 0, workers: 1, power: 1, axe: 1,
-  totalWood: 0, level: 1, last: Date.now()
-}));
-
-function saveGame() { localStorage.setItem("game_v2", JSON.stringify(game)); }
-
-function getProd() { return game.workers * game.power * game.axe; }
-
-function updateGameUI() {
-  document.getElementById("wood").textContent = Math.floor(game.wood);
-  document.getElementById("money").textContent = Math.floor(game.money);
-  document.getElementById("workers").textContent = game.workers;
-  document.getElementById("power").textContent = game.power.toFixed(1);
-  document.getElementById("prod").textContent = getProd().toFixed(1);
-  document.getElementById("hire-cost").textContent = game.workers * 50;
-  document.getElementById("power-cost").textContent = Math.floor(game.power * 100);
-  document.getElementById("axe-cost").textContent = game.axe * 250;
-  document.getElementById("level").textContent = game.level;
-  document.getElementById("total-wood").textContent = Math.floor(game.totalWood);
-}
-
-function collect(offline = false) {
-  const now = Date.now();
-  const sec = Math.min((now - game.last) / 1000, 86400); // max 24h
-  if (sec > 10) {
-    const gained = getProd() * sec;
-    game.wood += gained;
-    game.money += gained * 0.12;
-    game.totalWood += gained;
-    if (offline) {
-      const info = document.getElementById("offline-info");
-      info.textContent = `Оффлайн: +${Math.floor(gained)} дерева`;
-      info.classList.remove("hidden");
-      setTimeout(() => info.classList.add("hidden"), 4000);
-    }
-  }
-  game.last = now;
-  // level up
-  const newLevel = 1 + Math.floor(game.totalWood / 500);
-  if (newLevel > game.level) game.level = newLevel;
-  saveGame();
-  updateGameUI();
-}
-
-function hire() {
-  const cost = game.workers * 50;
-  if (game.money >= cost) {
-    game.money -= cost;
-    game.workers++;
-    saveGame(); updateGameUI();
-  }
-}
-function upgradePower() {
-  const cost = game.power * 100;
-  if (game.money >= cost) {
-    game.money -= cost;
-    game.power += 0.5;
-    saveGame(); updateGameUI();
-  }
-}
-function buyAxe() {
-  const cost = game.axe * 250;
-  if (game.money >= cost) {
-    game.money -= cost;
-    game.axe += 1;
-    saveGame(); updateGameUI();
-  }
-}
-function collectOffline() { collect(true); }
-
-function renderProducts() {
-  const q = (document.getElementById("search").value || "").toLowerCase();
-  const list = products.filter(p => p.name.toLowerCase().includes(q));
-  const c = document.getElementById("products");
-  c.innerHTML = "";
-  list.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden";
-    div.innerHTML = `
-      <img src="\( {p.img}" class="w-full h-32 object-contain bg-slate-950" alt=" \){p.name}">
-      <div class="p-3">
-        <h3 class="font-bold text-sm">${p.name}</h3>
-        <div class="flex justify-between items-center mt-2">
-          <span class="text-amber-400 font-bold">${p.price} ⭐</span>
-          <button onclick="addToCart(${p.id})" class="bg-purple-600 text-xs px-3 py-1 rounded-lg">+</button>
-        </div>
-      </div>`;
-    c.appendChild(div);
-  });
-}
-
-function addToCart(id) {
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-  const item = cart.find(x => x.id === id);
-  if (item) item.qty++;
-  else cart.push({ ...p, qty: 1 });
-  updateCart();
-}
-function updateCart() {
-  document.getElementById("cart-count").textContent = cart.reduce((s, i) => s + i.qty, 0);
-  const c = document.getElementById("cart-items");
-  c.innerHTML = cart.map(i => `<div class="flex justify-between py-2 border-b border-slate-800">
-    <span>\( {i.name} × \){i.qty}</span><span>${i.price * i.qty} ⭐</span>
-  </div>`).join("") || "<p class='text-slate-400 text-sm text-center py-4'>Корзина пуста</p>";
-  document.getElementById("cart-total").textContent = cart.reduce((s, i) => s + i.price * i.qty, 0) + " ⭐";
-}
-function openCart() { updateCart(); document.getElementById("cart-modal").classList.remove("hidden"); }
-function closeCart() { document.getElementById("cart-modal").classList.add("hidden"); }
-function checkout() { alert("Оплата Stars будет добавлена позже"); cart = []; updateCart(); closeCart(); }
-
-function showShop() {
-  document.getElementById("shop-section").classList.remove("hidden");
-  document.getElementById("game-section").classList.add("hidden");
-  document.getElementById("tab-shop").className = "flex-1 py-3 text-sm font-semibold tab-active";
-  document.getElementById("tab-game").className = "flex-1 py-3 text-sm font-semibold text-slate-400";
-}
-function showGame() {
-  document.getElementById("game-section").classList.remove("hidden");
-  document.getElementById("shop-section").classList.add("hidden");
-  document.getElementById("tab-game").className = "flex-1 py-3 text-sm font-semibold tab-active";
-  document.getElementById("tab-shop").className = "flex-1 py-3 text-sm font-semibold text-slate-400";
-  collect(true);
-}
-
-document.getElementById("search").addEventListener("input", renderProducts);
-setInterval(() => collect(false), 3000);
-renderProducts();
-updateGameUI();
-collect(true);
-</script>
-</body>
-</html>
+    Последнее обновление: <span id="last-update">
